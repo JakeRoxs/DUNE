@@ -1,0 +1,100 @@
+name: Weekly Jellyfin Upstream Sync
+
+on:
+  schedule:
+    - cron: "0 3 * * 1" # every Monday at 03:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add official Jellyfin upstream remote
+        run: |
+          git remote remove jellyfin 2>/dev/null || true
+          git remote add jellyfin https://github.com/jellyfin/jellyfin-androidtv.git
+
+      - name: Fetch upstream
+        run: git fetch jellyfin
+
+      - name: Create sync branch and merge upstream
+        id: merge-upstream
+        run: |
+          SYNC_BRANCH="sync/jellyfin/master-$(date --utc +'%Y%m%d-%H%M')"
+          RELEASE_TAG="weekly-sync-jellyfin-master-$(date --utc +'%Y%m%d-%H%M')"
+          RELEASE_NAME="Weekly upstream sync: jellyfin/master (${SYNC_BRANCH})"
+          git checkout -B "$SYNC_BRANCH"
+          if git merge --no-ff --no-edit jellyfin/master; then
+            echo "MERGE_OK=true" >> "$GITHUB_OUTPUT"
+          else
+            git merge --abort || true
+            echo "MERGE_OK=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "SYNC_BRANCH=$SYNC_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
+          echo "UPSTREAM_SHA=$(git rev-parse jellyfin/master)" >> "$GITHUB_OUTPUT"
+
+      - name: Build enhanced APK
+        if: ${{ steps.merge-upstream.outputs.MERGE_OK == 'true' }}
+        run: |
+          ./gradlew app:assembleEnhancedRelease
+
+      - name: Push sync branch
+        if: ${{ steps.merge-upstream.outputs.MERGE_OK == 'true' }}
+        run: |
+          git push --set-upstream origin "${{ steps.merge-upstream.outputs.SYNC_BRANCH }}"
+
+      - name: Create draft release with enhanced APK
+        if: ${{ steps.merge-upstream.outputs.MERGE_OK == 'true' }}
+        uses: actions/create-release@v1
+        id: create_release
+        with:
+          tag_name: ${{ steps.merge-upstream.outputs.RELEASE_TAG }}
+          release_name: ${{ steps.merge-upstream.outputs.RELEASE_NAME }}
+          body: |
+            This draft release was created automatically by the weekly Jellyfin upstream sync workflow.
+
+            It contains the built enhanced APK for review.
+          draft: true
+          prerelease: true
+
+      - name: Upload enhanced APK to release
+        if: ${{ steps.merge-upstream.outputs.MERGE_OK == 'true' }}
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/enhanced/release/Dune.androidtv-0.1.1.apk
+          asset_name: Dune.androidtv-0.1.1.apk
+          asset_content_type: application/vnd.android.package-archive
+
+      - name: Notify failure due to merge conflict
+        if: ${{ steps.merge-upstream.outputs.MERGE_OK == 'false' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Jellyfin upstream sync failed due to merge conflicts',
+              body: `The weekly upstream sync workflow attempted to merge jellyfin/master into master and encountered conflicts.
+
+              Please run the sync script locally or resolve the merge manually on the target branch.`
+            })

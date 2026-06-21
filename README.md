@@ -27,7 +27,9 @@ This project uses the same translation system as the original Jellyfin Android T
 ## Key Features
 
 ### Visual & Interface
+
 **Modernized UI Framework**
+
 - Redesigned home screen with improved content hierarchy
 - Enhanced login experience with visual feedback
 - Default avatars for users without profile images
@@ -35,18 +37,23 @@ This project uses the same translation system as the original Jellyfin Android T
 - Multiple theme options including OLED-optimized dark mode, based on [Jellyfin Android TV OLED](https://github.com/LitCastVlog/jellyfin-androidtv-OLED)
 
 ### Customization
+
 **Library Presentation**
+
 - Toggle between classic and modern layouts
 - Dynamic backdrops from media artwork
 - Customizable homescreen rows (genres, favorites, collections)
 
 ### Media Experience
+
 **Enhanced Playback**
+
 - Advanced subtitle controls
 - Customizable background effects
 - Optimized performance
 
 ### Technical Improvements
+
 - Reduced memory usage
 - Faster app startup
 - Side by side installation alongside official client
@@ -55,11 +62,13 @@ This project uses the same translation system as the original Jellyfin Android T
 ## Building from Source
 
 ### Requirements
+
 - Android Studio Giraffe (2022.3.1+)
 - Android SDK (API 35)
 - OpenJDK 21+
 
 ### Build Instructions
+
 ```bash
 # Clone repository
 git clone https://github.com/Sam42a/DUNE.git
@@ -73,6 +82,7 @@ cd DUNE-main
 ```
 
 ### Install on Device
+
 ```bash
 # Install debug version
 ./gradlew installStandardDebug
@@ -82,6 +92,48 @@ cd DUNE-main
 ```
 
 **Note:** The enhanced version uses package ID `Dune.enhanced.tv` which allows it to be installed alongside the original Jellyfin app.
+
+## Syncing with Official Jellyfin Upstream
+
+This fork tracks the official Jellyfin Android TV client at [jellyfin/jellyfin-androidtv](https://github.com/jellyfin/jellyfin-androidtv).
+
+To sync the latest upstream changes while preserving DUNE customizations:
+
+```bash
+./scripts/sync-jellyfin-upstream.sh
+```
+
+The script will:
+
+- ensure the working tree is clean
+- add `jellyfin` remote if missing
+- fetch latest upstream changes
+- create a new sync branch from the current branch
+- merge `jellyfin/master` into the sync branch
+
+If conflicts occur, resolve them and run:
+
+```bash
+git merge --continue
+```
+
+### GitHub Actions Automation
+
+A weekly GitHub Actions workflow has been added at `.github/workflows/weekly-upstream-sync.yml`.
+
+This workflow will:
+
+- run every Monday at 03:00 UTC
+- fetch official Jellyfin upstream
+- create a branch named `sync/jellyfin/master-YYYYMMDD-HHMM`
+- merge `jellyfin/master` into the new branch
+- build the APK automatically
+- push the sync branch to the repository
+
+- create a draft release with the generated APK
+- create an issue if the merge fails due to conflicts
+
+If the action creates a branch with merge conflicts, resolve them locally by checking out the branch and continuing the merge.
 
 ## Third-Party Libraries
 
