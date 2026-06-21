@@ -174,7 +174,6 @@
     <string name="lbl_clear_queue">پاک کردن صف</string>
     <string name="btn_got_it">فهمیدم</string>
     <string name="lbl_refresh_switching">تعویض سرعت تازه سازی</string>
-    <string name="pref_show_backdrop_description">تغییر پس زمینه به تصاویر انتخاب شده</string>
     <string name="lbl_show_backdrop">نمایش تصاویر پس زمینه</string>
     <string name="lbl_open">باز کردن</string>
     <string name="lbl_play_next_up">پخش بعدی</string>
@@ -343,9 +342,6 @@
     <string name="pref_clock_display_browsing">حین گشتن</string>
     <string name="lbl_always">همیشه</string>
     <string name="pref_clock_display">نمایش ساعت</string>
-    <string name="pref_default_rating">نوع ارزیابی پیشفرض</string>
-    <string name="lbl_tomatoes">گوجه فرنگی ها</string>
-    <string name="lbl_stars">ستاره ها</string>
     <string name="watch_count_overflow">۹۹+</string>
     <string name="lbl_playback_control_ends">در %1$s به اتمام می‌رسد</string>
     <string name="lbl_sign_in">لطفاً وارد شوید</string>
@@ -405,7 +401,7 @@
 \nبا زدن دکمه \"اضافه کردن حساب\" یک حساب جدید ایجاد کنید.</string>
     <string name="lbl_end_padding">پایان پر کردن</string>
     <string name="lbl_begin_padding">شروع پر کردن</string>
-    <string name="lbl_tune_to_channel">تغییر به کانال</string>
+    <string name="lbl_tune_to_channel">به کانال مورد نظر تنظیم کنید</string>
     <string name="state_disabled">ناتوان کردن</string>
     <string name="lbl_hide_watched_checkmark">هنگامی که اینجا قسمتی باقی‌مانده باشد</string>
     <string name="live_tv_preferences">گزینه‌های پخش زنده تلویزیون</string>

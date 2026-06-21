@@ -5,11 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.PopupMenu
-import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.ContextCompat
-import androidx.core.os.bundleOf
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -25,7 +21,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.jellyfin.androidtv.R
-import org.jellyfin.androidtv.ui.AsyncImageView
 import org.jellyfin.androidtv.auth.model.ApiClientErrorLoginState
 import org.jellyfin.androidtv.auth.model.AuthenticatedState
 import org.jellyfin.androidtv.auth.model.AuthenticatingState
@@ -41,15 +36,16 @@ import org.jellyfin.androidtv.auth.repository.ServerUserRepository
 import org.jellyfin.androidtv.data.service.BackgroundService
 import org.jellyfin.androidtv.databinding.FragmentServerBinding
 import org.jellyfin.androidtv.ui.ServerButtonView
+import org.jellyfin.androidtv.ui.card.UserCardView
 import org.jellyfin.androidtv.ui.startup.StartupViewModel
+import org.jellyfin.androidtv.util.ListAdapter
 import org.jellyfin.androidtv.util.MarkdownRenderer
+import org.jellyfin.androidtv.util.createBundle
 import org.jellyfin.sdk.model.serializer.toUUIDOrNull
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
-import timber.log.Timber
 
 class ServerFragment : Fragment() {
-	private var initialFocusSet = false
 	companion object {
 		const val ARG_SERVER_ID = "server_id"
 	}
@@ -82,10 +78,10 @@ class ServerFragment : Fragment() {
 					AuthenticatingState -> Unit
 					AuthenticatedState -> Unit
 					// Actions
-					RequireSignInState -> navigateFragment<UserLoginFragment>(bundleOf(
-						UserLoginFragment.ARG_SERVER_ID to server.id.toString(),
-						UserLoginFragment.ARG_USERNAME to user.name,
-					))
+					RequireSignInState -> navigateFragment<UserLoginFragment>(createBundle {
+						putString(UserLoginFragment.ARG_SERVER_ID, server.id.toString())
+						putString(UserLoginFragment.ARG_USERNAME, user.name)
+					})
 					// Errors
 					ServerUnavailableState,
 					is ApiClientErrorLoginState -> Toast.makeText(context, R.string.server_connection_failed, Toast.LENGTH_LONG).show()
@@ -107,25 +103,11 @@ class ServerFragment : Fragment() {
 		startupViewModel.users
 			.flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
 			.onEach { users ->
-				userAdapter.updateItems(users)
+				userAdapter.items = users
 
 				binding.users.isFocusable = users.any()
 				binding.noUsersWarning.isVisible = users.isEmpty()
-
-				// Set initial focus on first user if not already set
-				if (users.isNotEmpty() && !initialFocusSet) {
-					initialFocusSet = true
-					view?.post {
-						try {
-							if (isAdded && view != null) {
-								val firstChild = binding.users.getChildAt(0)
-								firstChild?.requestFocus()
-							}
-						} catch (e: Exception) {
-							Timber.e(e, "Error setting initial focus")
-						}
-					}
-				}
+				binding.root.requestFocus()
 			}.launchIn(viewLifecycleOwner.lifecycleScope)
 
 		startupViewModel.loadUsers(server)
@@ -160,10 +142,10 @@ class ServerFragment : Fragment() {
 
 		binding.addUserButton.setOnClickListener {
 			navigateFragment<UserLoginFragment>(
-				args = bundleOf(
-					UserLoginFragment.ARG_SERVER_ID to server.id.toString(),
-					UserLoginFragment.ARG_USERNAME to null
-				)
+				args = createBundle {
+					putString(UserLoginFragment.ARG_SERVER_ID, server.id.toString())
+					putString(UserLoginFragment.ARG_USERNAME, null)
+				}
 			)
 		}
 
@@ -187,7 +169,7 @@ class ServerFragment : Fragment() {
 	}
 
 	private inline fun <reified F : Fragment> navigateFragment(
-		args: Bundle = bundleOf(),
+		args: Bundle = createBundle(),
 		keepToolbar: Boolean = false,
 		keepHistory: Boolean = true,
 	) {
@@ -216,108 +198,51 @@ class ServerFragment : Fragment() {
 		else navigateFragment<SelectServerFragment>(keepToolbar = true)
 	}
 
-	private inner class UserAdapter(
+	private class UserAdapter(
 		private val context: Context,
 		private val server: Server,
 		private val startupViewModel: StartupViewModel,
 		private val authenticationRepository: AuthenticationRepository,
 		private val serverUserRepository: ServerUserRepository,
-	) : RecyclerView.Adapter<UserAdapter.ViewHolder>() {
-		private var items: List<User> = emptyList()
+	) : ListAdapter<User, UserAdapter.ViewHolder>() {
 		var onItemPressed: (User) -> Unit = {}
 
-		fun updateItems(newItems: List<User>) {
-			items = newItems
-			notifyDataSetChanged()
-		}
-
-		override fun getItemCount(): Int = items.size
-
-		private fun getItem(position: Int): User = items[position]
+		override fun areItemsTheSame(old: User, new: User): Boolean = old.id == new.id
 
 		override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-			val view = LayoutInflater.from(parent.context).inflate(R.layout.view_circular_user_profile, parent, false)
-			return ViewHolder(view)
+			val cardView = UserCardView(context)
+
+			return ViewHolder(cardView)
 		}
 
-		override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-			val user = getItem(position)
+		override fun onBindViewHolder(holder: ViewHolder, user: User) {
+			holder.cardView.name = user.name
+			holder.cardView.image = startupViewModel.getUserImage(server, user)
 
-			// Load the profile image
-			val placeholder = ContextCompat.getDrawable(holder.itemView.context, R.drawable.tile_user)
-			holder.profileImage.load(
-				url = startupViewModel.getUserImage(server, user),
-				blurHash = null,
-				placeholder = placeholder,
-				aspectRatio = 1.0,
-				blurHashResolution = 32
-			)
-
-			holder.itemView.findViewById<TextView>(R.id.name).text = user.name
-
-			// Set focus change listener for animations
-			holder.container.setOnFocusChangeListener { _, hasFocus ->
-				holder.itemView.animate()
-					.scaleX(if (hasFocus) 1.05f else 1.0f)
-					.scaleY(if (hasFocus) 1.05f else 1.0f)
-					.translationZ(if (hasFocus) 8.8f else 0f)
-					.setDuration(200)
-					.start()
-
-				if (hasFocus) {
-					// Scroll to the focused position
-					holder.itemView.post {
-						val recyclerView = holder.itemView.parent as? RecyclerView
-						recyclerView?.smoothScrollToPosition(holder.bindingAdapterPosition)
-					}
-				}
-			}
-		}
-
-		private fun showUserMenu(view: View, user: User) {
-			val popup = PopupMenu(view.context, view)
-			val menu = popup.menu
-
-			// Logout button
-			if (user is PrivateUser && user.accessToken != null) {
-				menu.add(0, View.generateViewId(), 0, R.string.lbl_sign_out).setOnMenuItemClickListener {
-					authenticationRepository.logout(user)
-					true
-				}
-			}
-
-			// Remove button
-			if (user is PrivateUser) {
-				menu.add(0, View.generateViewId(), 0, R.string.lbl_remove).setOnMenuItemClickListener {
-					serverUserRepository.deleteStoredUser(user)
-					startupViewModel.loadUsers(server)
-					true
-				}
-			}
-		}
-
-		inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-			val profileImage: AsyncImageView = itemView.findViewById(R.id.profile_image)
-			val container: ViewGroup = itemView.findViewById(R.id.profile_container)
-
-			init {
-				// Set click listener on the container
-				container.setOnClickListener {
-					val position = bindingAdapterPosition
-					if (position != RecyclerView.NO_POSITION) {
-						onItemPressed(getItem(position))
+			holder.cardView.setPopupMenu {
+				// Logout button
+				if (user is PrivateUser && user.accessToken != null) {
+					item(context.getString(R.string.lbl_sign_out)) {
+						authenticationRepository.logout(user)
 					}
 				}
 
-				// Set long click listener on the container
-				container.setOnLongClickListener {
-					val position = bindingAdapterPosition
-					if (position != RecyclerView.NO_POSITION) {
-						showUserMenu(it, getItem(position))
+				// Remove button
+				if (user is PrivateUser) {
+					item(context.getString(R.string.lbl_remove)) {
+						serverUserRepository.deleteStoredUser(user)
+						startupViewModel.loadUsers(server)
 					}
-					true
 				}
 			}
+
+			holder.cardView.setOnClickListener {
+				onItemPressed(user)
+			}
 		}
+
+		private class ViewHolder(
+			val cardView: UserCardView,
+		) : RecyclerView.ViewHolder(cardView)
 	}
 }

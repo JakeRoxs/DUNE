@@ -4,12 +4,6 @@
     <string name="btn_cancel">Avbryt</string>
     <string name="byletter_letters">ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ</string>
     <string name="settings_title">Preferenser</string>
-
-    <!-- Språkinställningar -->
-    <string name="pref_language">App-språk</string>
-    <string name="pref_language_header">Språkinställningar</string>
-    <string name="pref_language_summary">Ändra språk som används i appen</string>
-
     <string name="pref_authentication_cat">Autentisering</string>
     <string name="loading">Laddar…</string>
     <string name="lbl_direct_stream_live">Realtidsströmma direktsänd-TV</string>
@@ -97,9 +91,8 @@
     <string name="lbl_song">Låt</string>
     <string name="lbl_artists">Artister</string>
     <string name="lbl_albums">Album</string>
-    <string name="lbl_live_tv_guide">Direktsänd-TV Guide</string>
+    <string name="lbl_live_tv_guide">Direktsänd TV guide</string>
     <string name="lbl_no_recordings">Inga inspelningar tillgängliga</string>
-    <string name="preference_enable_pgs">Direktuppspelning av PGS-undertexter</string>
     <string name="msg_burn_sub_warning">Bränner in undertexter. Detta kan ta några sekunder…</string>
     <string name="msg_unable_load_subs">Kan inte ladda undertext</string>
     <string name="msg_subtitles_loading">Undertexter laddas…</string>
@@ -147,7 +140,6 @@
     <string name="lbl_remove_favorite">Ta bort favorit</string>
     <string name="lbl_mark_played">Markera som uppspelat</string>
     <string name="lbl_mark_unplayed">Markera som ej uppspelat</string>
-    <string name="lbl_playing">Spelar</string>
     <string name="lbl_play_first_unwatched">Spela först osedda</string>
     <string name="lbl_search_hint">Sök text (välj för tangentbord)</string>
     <string name="lbl_tv_queuing">Spela nästa avsnitt automatiskt</string>
@@ -167,7 +159,6 @@
     <string name="lbl_yes">Ja</string>
     <string name="lbl_no">Nej</string>
     <string name="lbl_play_trailers">Spela trailer(s)</string>
-    <string name="lbl_play_external"> Spela i extern spelare</string>
     <string name="lbl_trailer">"Trailer "</string>
     <string name="lbl_bracket_unknown">Okänd</string>
     <string name="msg_video_playback_error">"Videouppspelningsfel "</string>
@@ -201,8 +192,6 @@
     <string name="lbl_cancel_series">Avbryt serie</string>
     <string name="lbl_cancel_recording">Avbryt inspelning</string>
     <string name="lbl_cancel">Avbryt</string>
-    <string name="lbl_Watched_History_Series">Sedda serier</string>
-    <string name="lbl_Watched_History_Movies">Såg historiska filmer</string>
     <string name="lbl_play">Spela upp</string>
     <string name="lbl_shuffle_all">Blanda alla</string>
     <string name="lbl_play_all">Spela upp alla</string>
@@ -216,52 +205,9 @@
     <string name="lbl_favorites">Favoriter</string>
     <string name="lbl_by_name">Efter namn</string>
     <string name="lbl_latest">Senast tillagda</string>
-    <string name="lbl_voice_search">Röstsökning</string>
     <string name="msg_not_implemented">" stöds ännu inte"</string>
     <string name="lbl_search">Sök</string>
-    <string-array name="genres">
-        <item>@string/genre_action</item>
-        <item>@string/genre_adventure</item>
-        <item>@string/genre_animation</item>
-        <item>@string/genre_comedy</item>
-        <item>@string/genre_crime</item>
-        <item>@string/genre_documentary</item>
-        <item>@string/genre_drama</item>
-        <item>@string/genre_family</item>
-        <item>@string/genre_fantasy</item>
-        <item>@string/genre_history</item>
-        <item>@string/genre_horror</item>
-        <item>@string/genre_music</item>
-        <item>@string/genre_mystery</item>
-        <item>@string/genre_romance</item>
-        <item>@string/genre_science_fiction</item>
-        <item>@string/genre_thriller</item>
-        <item>@string/genre_war</item>
-        <item>@string/genre_western</item>
-        <item>@string/genre_tv_movie</item>
-    </string-array>
-
-    <string name="genre_action">Action</string>
-    <string name="genre_adventure">Äventyr</string>
-    <string name="genre_animation">Animerad</string>
-    <string name="genre_comedy">Komedi</string>
-    <string name="genre_crime">Kriminalare</string>
-    <string name="genre_documentary">Dokumentär</string>
-    <string name="genre_drama">Drama</string>
-    <string name="genre_family">Familj</string>
-    <string name="genre_fantasy">Fantasy</string>
-    <string name="genre_history">Historia</string>
-    <string name="genre_horror">Skräck</string>
-    <string name="genre_music">Musik</string>
-    <string name="genre_mystery">Mysterium</string>
-    <string name="genre_romance">Romantik</string>
-    <string name="genre_science_fiction">Science Fiction</string>
-    <string name="genre_thriller">Thriller</string>
-    <string name="genre_war">Krig</string>
-    <string name="genre_western">Western</string>
-    <string name="genre_tv_movie">TV-film</string>
-
-    <string name="lbl_all_genres">Alla genrer</string>
+    <string name="lbl_genres">Genrer</string>
     <string name="lbl_status">%1$s / %2$s</string>
     <string name="lbl_suggested">Föreslagna</string>
     <string name="lbl_by_letter">I bokstavsordning</string>
@@ -326,14 +272,11 @@
     <string name="pref_clock_display_browsing">Vid bläddring</string>
     <string name="lbl_always">Alltid</string>
     <string name="pref_clock_display">Visa klocka</string>
-    <string name="pref_default_rating">Förvald betygstyp</string>
-    <string name="lbl_tomatoes">Tomater</string>
-    <string name="lbl_stars">Stjärnor</string>
     <string name="lbl_playback_control_ends">Slutar vid %1$s</string>
     <string name="image_type_thumbnail">Miniatyr</string>
     <string name="pref_watched_indicator">Visa indikator för antal tittade</string>
     <string name="lbl_hide_unwatched_count">Dölj antal ej uppspelade föremål</string>
-    <string name="login_help_description">DUNE behöver en server att ansluta till. Besök vår dokumentation på docs.jellyfin.org eller skanna QR-koden för att komma igång med Jellyfin.</string>
+    <string name="login_help_description">Jellyfin behöver en server att ansluta till. Besök vår dokumentation på docs.jellyfin.org eller skanna QR-koden för att komma igång med Jellyfin.</string>
     <string name="login_help_title">Behöver du hjälp\?</string>
     <string name="connect_manually_by_address">Ange serveraddress</string>
     <string name="discovered_servers_empty">Inga servrar hittades på det lokala nätverket.</string>
@@ -373,7 +316,7 @@
     <string name="no_user_warning">Vi hittade inga konton!
 \nLägg till ett konto genom att trycka på \"Lägg till konto\".</string>
     <string name="welcome_content">Anslut till din server för att börja.</string>
-    <string name="welcome_title">Välkommen till DUNE!</string>
+    <string name="welcome_title">Välkommen till Jellyfin!</string>
     <string name="saved_servers">Sparade servrar</string>
     <string name="press_to_close">Tryck för att stänga</string>
     <string name="lbl_record_all">Kommer att övervaka alla avsnitt</string>
@@ -397,7 +340,7 @@
     <string name="lbl_next_up_minimal">Utan miniatyrbild</string>
     <string name="lbl_next_up_extended">Med miniatyrbild</string>
     <string name="lbl_episode_range">E%1$d–%2$d</string>
-    <string name="no_network_permissions">DUNE kräver nätverksprivilegier för att fungera</string>
+    <string name="no_network_permissions">Jellyfin kräver nätverksprivilegier för att fungera</string>
     <string name="pref_theme_muted_purple">Dämpad lila</string>
     <string name="lbl_fit">Normal</string>
     <string name="lbl_stretch">Sträck ut</string>
@@ -423,7 +366,7 @@
     <string name="license_artifact">Artefakt</string>
     <string name="license_version">Version</string>
     <string name="license_description">Beskrivning</string>
-    <string name="licenses_link_description">Se på alla de bibliotekslicenser som använder</string>
+    <string name="licenses_link_description">Se på alla de bibliotekslicenser som Jellyfin använder</string>
     <string name="licenses_link">Licenser</string>
     <string name="select_version">Version</string>
     <string name="lbl_community_rating">Publiksbetyg</string>
@@ -457,11 +400,8 @@
     <string name="server_issue_unsupported_version">Servern använder version %1$s vilket stöds ej</string>
     <string name="server_issue_missing_version">Kunde ej bestämma serverversion</string>
     <string name="server_issue_invalid_product">Servermjukvara är inkompatibel</string>
-    <string name="pref_subtitles_bold">Fet textning</string>
     <string name="server_issue_unable_to_connect">Kunde ej ansluta</string>
     <string name="server_connection_failed_candidates">Kunde ej ansluta till servern, försökte följande adresser: %1$s</string>
-    <string name="backdrop_settings_description">Anpassa bakgrundens utseende och beteende</string>
-    <string name="pref_show_backdrop_description">Ändra bakgrundsbild enligt valda objekt</string>
     <string name="action_connect">Anslut</string>
     <string name="pref_refresh_rate_scale_on_device">Skala på enheten</string>
     <string name="pref_refresh_rate_scale_on_tv">Skala på TV</string>
@@ -525,7 +465,7 @@
     <string name="pref_enable_media_management_description">Visa inställningar för mediahantering under bläddring</string>
     <string name="item_delete_confirm_message">Är du säker på att du vill ta bort denna från servern\? Det går inte att ångra.</string>
     <string name="pref_screensaver_inapp_enabled">Använd appens skärmsläckare</string>
-    <string name="pref_screensaver_inapp_enabled_description">Visa skärmsläckare när appen är öppen</string>
+    <string name="pref_screensaver_inapp_enabled_description">Visa Jellyfins skärmsläckare när appen är öppen</string>
     <string name="pref_screensaver_inapp_timeout">Starta skärmsläckaren efter</string>
     <plurals name="seconds">
         <item quantity="one">%1$s sekund</item>
@@ -579,7 +519,6 @@
     <string name="dca">DTS</string>
     <string name="eac3">DD+</string>
     <string name="dts_x">DTS:X</string>
-    <string name="indicator_subtitles_hearing_impaired">Sedda serier</string>
     <string name="dolby_atmos">Dolby Atmos</string>
     <string name="dts_hd">DTS:HD</string>
     <string name="clear_image_cache_content">Använt: %1$s</string>
@@ -602,12 +541,12 @@
     <string name="app_notification_update_soon">Uppdatera din server från %1$s till minst %2$s för att kunna fortsätta använda appen efter nästa uppdatering.</string>
     <string name="continue_listening">Fortsätt lyssna</string>
     <string name="current_queue">Aktuell kö</string>
-    <string name="lbl_subtitle_text_color">Textfärg för undertexter</string>
-    <string name="lbl_subtitle_background_color">Bakgrundsfärg för undertexter</string>
-    <string name="lbl_subtitle_text_stroke_color">Färg för undertextens kantlinje</string>
+    <string name="lbl_subtitle_text_color">Textfärg</string>
+    <string name="lbl_subtitle_background_color">Bakgrundsfärg</string>
+    <string name="lbl_subtitle_text_stroke_color">Kantfärg</string>
     <string name="prefer_exoplayer_ffmpeg">Föredra FFmpeg för ljuduppspelning</string>
     <string name="prefer_exoplayer_ffmpeg_content">Använd FFmpeg för att avkoda ljud, även om det finns tillgängliga plattformscodecs.</string>
-    <string name="segment_type_outro">Outros</string>
+    <string name="segment_type_outro">Outro</string>
     <string name="preference_enable_trickplay">Aktivera trickplay i videospelaren</string>
     <string name="default_video_zoom">Standard zoomläge</string>
     <string name="video_start_delay">Fördröjning av videostart</string>
@@ -615,43 +554,112 @@
     <string name="segment_type_recap">Sammanfattningar</string>
     <string name="segment_type_unknown">Okända segment</string>
     <string name="segment_action_ask_to_skip">Fråga om att hoppa över</string>
-    <string name="segment_type_intro">Intros</string>
-    <string name="skip_forward_length">Hoppa framåt i längd</string>
+    <string name="segment_type_intro">Intron</string>
+    <string name="skip_forward_length">Längd att hopppa framåt</string>
     <string name="pref_mediasegment_actions">Åtgärder inom mediesegmentet</string>
     <string name="segment_action_nothing">Gör inget</string>
     <string name="segment_action_skip">Hoppa över</string>
     <string name="segment_type_commercial">Reklamfilmer</string>
     <string name="runtime_hours_minutes">%1$dt %2$dm</string>
     <string name="runtime_minutes">%1$dm</string>
-    <string name="pref_audio_default_language">Standardspråk för ljud</string>
-    <string name="pref_default_language_none">(Standard)</string>
-    <string name="genre_row_movie">Filmgenrer</string>
-    <string name="genre_row_tvshow">TV-programgenrer</string>
-    <string name="show_history_row">Visa historikrad</string>
-    <string name="show_music_row">Visa musikrad</string>
-    <string name="show_mystery_row">Visa mysterierad</string>
-    <string name="show_reality_row">Visa verklighetsrad</string>
-    <string name="show_thriller_row">Visa thrillerrad</string>
-    <string name="show_war_row">Visa krigsrad</string>
-    <string name="show_music_videos_row">Visa musikvideorad</string>
-    <string name="music_videos">Musikvideor</string>
-    <string name="show_live_tv_button">Knapp för direktsänd TV</string>
-    <string name="show_live_tv_button_summary">Visa knappen för direktsänd TV</string>
-    <string name="move_up">Flytta upp</string>
-    <string name="move_down">Flytta ner</string>
-    <string name="enhanced_tweaks">Förbättrade inställningar</string>
-    <string name="enhanced_tweaks_description">Bakgrundsinställningar, genrerader, appteman och mer...</string>
-
-    <!-- Language preference strings -->
-    <string name="lbl_music_videos">Musikvideor</string>
-    <string name="pref_report_device_profile_failure">Kunde inte skicka dokumentet. Din Jellyfin-server kan förbjuda klientloggar.</string>
-    <string name="pref_report_device_profile_summary">Ladda upp ett felsökningsdokument till Jellyfin-servern med information om uppspelningsfunktioner</string>
-    <string name="voice_search_not_available">Röstsökning är inte tillgänglig</string>
-    <string name="error_occurred">Ett fel uppstod. Försök igen.</string>
-    <string name="no_results_found">Inga resultat hittades</string>
-    <string name="lbl_library">Refresh</string>
-    <string name="pref_clock_settings">Klockinställningar</string>
-    <string name="subtitles">Undertexter</string>
-    <string name="audio">ljud</string>
-    <string name="transcoding_details">Detaljer om Transcoding</string>
+    <string name="pref_subtitles_bold">Fet text</string>
+    <string name="pref_report_device_profile_failure">Misslyckades med att skicka dokument. Din Jellyfin-server kanske förbjuder klientloggar.</string>
+    <string name="fast_forward">Spola fram</string>
+    <string name="pref_subtitles_background_opacity">Genomskinlighet av undertextsbakgrund</string>
+    <string name="pref_troubleshooting">Felsökning</string>
+    <string name="rewind">Spola tillbaka</string>
+    <string name="speech_error_unavailable">Taligenkänning är inte tillgängligt på din enhet.</string>
+    <string name="lbl_from_beginning">Spela från början</string>
+    <string name="pref_report_device_profile_summary">Ladda upp ett felsökningsdokument till Jellyfin-servern med information om uppspelningsmöjligheter</string>
+    <string name="speech_error_no_permission">Nekad tillåtelse att använda mikrofonen. Aktivera det i systemets inställningar.</string>
+    <string name="speech_error_unknown">Ett oväntat fel inträffade under taligenkänningen.</string>
+    <string name="pref_report_device_profile_title">Rapportera uppspelningsmöjligheter till server</string>
+    <string name="pref_report_device_profile_success">Dokument skickat som %1$s</string>
+    <string name="indicator_subtitles_hearing_impaired">SDH</string>
+    <string name="lbl_exit">Avsluta</string>
+    <string name="pref_still_watching_behavior_title">Visa popup för inaktivitetstimer</string>
+    <string name="lbl_still_watching_default">3 avsnitt eller 90 minuter</string>
+    <string name="lbl_still_watching_short">2 avsnitt eller 60 minuter</string>
+    <string name="lbl_still_watching_long">5 avsnitt eller 150 minuter</string>
+    <string name="lbl_still_watching_very_long">8 avsnitt eller 240 minuter</string>
+    <string name="preference_enable_pgs">Direktspela PGS-undertexter</string>
+    <string name="still_watching_label">Tittar du fortfarande?</string>
+    <string name="pref_subtitles_position">Avstånd från botten</string>
+    <string name="settings">Inställningar</string>
+    <string name="settings_description">Anpassa appen efter dina egna preferenser</string>
+    <string name="copied_to_clipboard">Kopierat till urklipp</string>
+    <string name="pref_prerolls_enabled_description">Spela valfria intros före filmer</string>
+    <string name="pref_media_queueing">Köa alla avsnitt</string>
+    <string name="pref_media_queueing_description">Lägg till följande avsnitt till kön när TV-serier spelas</string>
+    <string name="pref_playback_media_segments">Media segment</string>
+    <string name="pref_customization_subtitles">Undertexter</string>
+    <string name="pref_prerolls_enabled">Aktivera bioläge</string>
+    <string name="pref_subtitles_weight">Text vikt</string>
+    <string name="font_weight_100">Tunn</string>
+    <string name="font_weight_200">Extra lätt</string>
+    <string name="font_weight_300">Lätt</string>
+    <string name="font_weight_400">Normal</string>
+    <string name="font_weight_500">Medium</string>
+    <string name="font_weight_600">Semi fet</string>
+    <string name="font_weight_700">Fet</string>
+    <string name="font_weight_800">Extra fet</string>
+    <string name="font_weight_900">Svart</string>
+    <string name="subtitle_preview_text">Undertexter kommer se ut så här</string>
+    <string name="color_custom">Anpassa färg</string>
+    <string name="color_alpha">Genomskinlighet</string>
+    <string name="playback_video_player">Video spelare</string>
+    <string name="video_player_internal">Inbyggd spelare</string>
+    <string name="video_player_external">Extern app</string>
+    <string name="filters">Filter</string>
+    <string name="pref_playback_next_up">Nästa</string>
+    <string name="pref_playback_prerolls">Prerolls</string>
+    <string name="pref_playback_inactivity_prompt">Inaktivitetsmeddelande</string>
+    <string name="color_presets">Förinställningar</string>
+    <string name="playback_video_player_external_empty">Du har inga videospelarappar installerade på din enhet som kan öppna Jellyfin videor.</string>
+    <string name="pref_burn_subtitles_when_transcoding">Bränn undertexterna vid omkodning</string>
+    <string name="pref_burn_subtitles_when_transcoding_description">Bränn alltid undertexterna till video vid omkodning. Detta kan fixa problem med synkronisering av undertexter men inaktiverar andra inställningar av undertexter.</string>
+    <string name="playback_buffer_length">Bufferstorlek för spelning</string>
+    <string name="playback_buffer_auto">Auto</string>
+    <string name="playback_buffer_large">Stor</string>
+    <string name="playback_buffer_extra_large">Extra stor</string>
+    <string name="backdrop_behavior_with_blur">Bakgrund med suddighet</string>
+    <string name="backdrop_behavior_without_blur">Bakgrund utan suddighet</string>
+    <string name="user_avc_level">H.264 (AVC) nivå</string>
+    <string name="user_hevc_level">H.265 (HEVC) nivå</string>
+    <string name="codec_level_warning">Ändrar man detta från auto kan det orsaka problem med uppspelningen om din enhet inte stödjer den valda nivån.</string>
+    <string name="preference_codecs">Media kodek</string>
+    <string name="preference_codecs_summary">Åsidosätt enhetsrapporterade kodekförmågor</string>
+    <string name="codec_level_manual">Manuel åsidosättning</string>
+    <string name="codec_level_6_2">Level 6,2</string>
+    <string name="codec_level_6_1">Level 6,1</string>
+    <string name="codec_level_6_0">Level 6,0</string>
+    <string name="codec_level_5_2">Level 5,2</string>
+    <string name="codec_level_5_1">Level 5,1</string>
+    <string name="codec_level_5_0">Level 5,0</string>
+    <string name="codec_level_4_2">Level 4,2</string>
+    <string name="codec_level_4_1">Level 4,1</string>
+    <string name="codec_level_4_0">Level 4,0</string>
+    <string name="auto">Automatiskt</string>
+    <string name="hdr10_plus">HDR10+</string>
+    <string name="dolby_vision_with_el">Dolby Vision med EL</string>
+    <string name="sdr">SDR</string>
+    <string name="hdr10">HDR10</string>
+    <string name="hlg">HLG</string>
+    <string name="playback_info_video_title">Video</string>
+    <string name="playback_info_audio_title">Ljud</string>
+    <string name="playback_info_codec">Kodek: %1$s</string>
+    <string name="playback_info_resolution">Upplösning: %1$dx%2$d</string>
+    <string name="playback_info_channels">Kanaler: %1$d</string>
+    <string name="preference_enable_ass_description">Experimentell funktion, kanske inte fungerar pålitligt</string>
+    <string name="preference_enable_pgs_description">Kräver omkodning när inaktiverad</string>
+    <string name="preference_enable_ass">Direktspela ASS-undertexter</string>
+    <string name="playback_info">Återspelningsinformation</string>
+    <string name="playback_info_play_method">Uppspelningsmetod: %1$s</string>
+    <string name="playback_info_direct_play">Direktspelning</string>
+    <string name="playback_info_direct_stream">Direktström</string>
+    <string name="playback_info_transcoding">Omkodning</string>
+    <string name="playback_info_container">Behållare: %1$s</string>
+    <string name="playback_info_bitrate">Bithastighet: %1$s</string>
+    <string name="playback_info_transcoding_note">Servern omkodar denna fil</string>
+    <string name="pref_software_codecs_enabled">Använd mjukvarkodeks</string>
 </resources>

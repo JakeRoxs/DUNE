@@ -24,9 +24,9 @@ import org.jellyfin.sdk.api.client.extensions.userLibraryApi
 import org.jellyfin.sdk.api.client.extensions.videosApi
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemKind
+import org.jellyfin.sdk.model.api.ItemFilter
 import org.jellyfin.sdk.model.api.ItemSortBy
 import org.jellyfin.sdk.model.api.MediaType
-import org.jellyfin.sdk.model.extensions.inWholeTicks
 import org.jellyfin.sdk.model.extensions.ticks
 import java.util.UUID
 import kotlin.time.Duration
@@ -89,7 +89,30 @@ class SdkPlaybackHelper(
 				}
 			}
 
-			BaseItemKind.SERIES, BaseItemKind.SEASON, BaseItemKind.BOX_SET, BaseItemKind.FOLDER -> {
+			BaseItemKind.SERIES -> {
+				val response by api.tvShowsApi.getEpisodes(
+					seriesId = mainItem.id,
+					isMissing = false,
+					sortBy = if (shuffle) ItemSortBy.RANDOM else ItemSortBy.SORT_NAME,
+					limit = ITEM_QUERY_LIMIT,
+					fields = ItemRepository.itemFields,
+				)
+				response.items
+			}
+
+			BaseItemKind.SEASON -> {
+				val response by api.tvShowsApi.getEpisodes(
+					seriesId = requireNotNull(mainItem.seriesId),
+					seasonId = mainItem.id,
+					isMissing = false,
+					sortBy = if (shuffle) ItemSortBy.RANDOM else ItemSortBy.SORT_NAME,
+					limit = ITEM_QUERY_LIMIT,
+					fields = ItemRepository.itemFields,
+				)
+				response.items
+			}
+
+			BaseItemKind.FOLDER -> {
 				val response by api.itemsApi.getItems(
 					parentId = mainItem.id,
 					isMissing = false,
@@ -107,12 +130,33 @@ class SdkPlaybackHelper(
 				response.items
 			}
 
+			BaseItemKind.BOX_SET -> {
+				val response by api.itemsApi.getItems(
+					parentId = mainItem.id,
+					isMissing = false,
+					includeItemTypes = listOf(
+						BaseItemKind.EPISODE,
+						BaseItemKind.MOVIE,
+						BaseItemKind.VIDEO
+					),
+					sortBy = if (shuffle) listOf(ItemSortBy.RANDOM) else null,
+					recursive = true,
+					limit = ITEM_QUERY_LIMIT,
+					fields = ItemRepository.itemFields
+				)
+
+				response.items
+			}
+
 			BaseItemKind.MUSIC_ALBUM -> {
 				val response by api.itemsApi.getItems(
 					isMissing = false,
 					mediaTypes = listOf(MediaType.AUDIO),
-					sortBy = listOf(
-						ItemSortBy.ALBUM_ARTIST,
+					filters = listOf(ItemFilter.IS_NOT_FOLDER),
+					sortBy = if (shuffle) listOf(ItemSortBy.RANDOM) else listOf(
+						ItemSortBy.ALBUM,
+						ItemSortBy.PARENT_INDEX_NUMBER,
+						ItemSortBy.INDEX_NUMBER,
 						ItemSortBy.SORT_NAME
 					),
 					recursive = true,
@@ -128,7 +172,13 @@ class SdkPlaybackHelper(
 				val response by api.itemsApi.getItems(
 					isMissing = false,
 					mediaTypes = listOf(MediaType.AUDIO),
-					sortBy = listOf(ItemSortBy.SORT_NAME),
+					filters = listOf(ItemFilter.IS_NOT_FOLDER),
+					sortBy = if (shuffle) listOf(ItemSortBy.RANDOM) else listOf(
+						ItemSortBy.ALBUM,
+						ItemSortBy.PARENT_INDEX_NUMBER,
+						ItemSortBy.INDEX_NUMBER,
+						ItemSortBy.SORT_NAME
+					),
 					recursive = true,
 					limit = ITEM_QUERY_LIMIT,
 					fields = ItemRepository.itemFields,
@@ -208,20 +258,20 @@ class SdkPlaybackHelper(
 		}
 	}
 
-	override fun retrieveAndPlay(id: UUID, shuffle: Boolean, position: Long?, context: Context) {
+	override fun retrieveAndPlay(itemId: UUID, shuffle: Boolean, context: Context) {
 		getScope(context).launch {
 			val resumeSubtractDuration =
 				userPreferences[UserPreferences.resumeSubtractDuration].toIntOrNull()?.seconds
 					?: Duration.ZERO
 
 			val item = withContext(Dispatchers.IO) {
-				api.userLibraryApi.getItem(id).content
+				val response by api.userLibraryApi.getItem(itemId)
+				response
 			}
-			val pos = position?.ticks ?: item.userData?.playbackPositionTicks?.ticks?.minus(
-				resumeSubtractDuration
-			) ?: Duration.ZERO
-			val allowIntros = pos == Duration.ZERO && item.type == BaseItemKind.MOVIE
 
+			val pos = item.userData?.playbackPositionTicks?.ticks?.minus(resumeSubtractDuration) ?: Duration.ZERO
+
+			val allowIntros = pos == Duration.ZERO && item.type == BaseItemKind.MOVIE
 			val items = getItems(item, allowIntros, shuffle)
 
 			playbackLauncher.launch(
@@ -230,6 +280,34 @@ class SdkPlaybackHelper(
 				pos.inWholeMilliseconds.toInt(),
 				playbackControllerContainer.playbackController?.hasFragment() == true,
 				0,
+				shuffle,
+			)
+		}
+	}
+
+	override fun retrieveAndPlay(itemIds: List<UUID>, shuffle: Boolean, position: Long?, index: Int?, context: Context) {
+		getScope(context).launch {
+			val resumeSubtractDuration =
+				userPreferences[UserPreferences.resumeSubtractDuration].toIntOrNull()?.seconds
+					?: Duration.ZERO
+
+			val items = withContext(Dispatchers.IO) {
+				val response by api.itemsApi.getItems(
+					ids = itemIds,
+				)
+				response.items
+			}
+
+			val pos = position?.ticks ?: items[0].userData?.playbackPositionTicks?.ticks?.minus(
+				resumeSubtractDuration
+			) ?: Duration.ZERO
+
+			playbackLauncher.launch(
+				context,
+				items,
+				pos.inWholeMilliseconds.toInt(),
+				playbackControllerContainer.playbackController?.hasFragment() == true,
+				index ?: 0,
 				shuffle,
 			)
 		}

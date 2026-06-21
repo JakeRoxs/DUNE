@@ -1,6 +1,5 @@
 package org.jellyfin.androidtv.di
 
-import org.jellyfin.androidtv.auth.AccountManagerMigration
 import org.jellyfin.androidtv.auth.repository.AuthenticationRepository
 import org.jellyfin.androidtv.auth.repository.AuthenticationRepositoryImpl
 import org.jellyfin.androidtv.auth.repository.ServerRepository
@@ -14,24 +13,20 @@ import org.jellyfin.androidtv.auth.store.AuthenticationStore
 import org.koin.dsl.module
 
 val authModule = module {
-	single { AccountManagerMigration(get()) }
-	single { AuthenticationStore(get(), get()) }
+	single { AuthenticationStore(get()) }
 	single { AuthenticationPreferences(get()) }
 
 	single<AuthenticationRepository> {
-		AuthenticationRepositoryImpl(
-			jellyfin = get(),
-			sessionRepository = get(),
-			authenticationStore = get(),
-			userApiClient = get(),
-		authenticationPreferences = get(),
-			defaultDeviceInfo = get(defaultDeviceInfo),
-			imageHelper = get()
-		)
+		AuthenticationRepositoryImpl(get(), get(), get(), get(), get(), get(defaultDeviceInfo))
 	}
 	single<ServerRepository> { ServerRepositoryImpl(get(), get()) }
 	single<ServerUserRepository> { ServerUserRepositoryImpl(get(), get()) }
 	single<SessionRepository> {
 		SessionRepositoryImpl(get(), get(), get(), get(), get(defaultDeviceInfo), get(), get(), get())
+	}
+
+	factory {
+		val serverRepository = get<ServerRepository>()
+		serverRepository.currentServer.value?.serverVersion ?: ServerRepository.minimumServerVersion
 	}
 }

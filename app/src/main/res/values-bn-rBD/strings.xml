@@ -44,12 +44,6 @@
     <string name="settings_title">পছন্দসমূহ</string>
     <string name="pref_max_bitrate_title">সর্বাধিক স্ট্রিমিং বিটরেট</string>
     <string name="pref_playback">প্লেব্যাক</string>
-    
-    <!-- ভাষা সেটিংস -->
-    <string name="pref_language">অ্যাপের ভাষা</string>
-    <string name="pref_language_header">ভাষা সেটিংস</string>
-    <string name="pref_language_summary">অ্যাপে ব্যবহৃত ভাষা পরিবর্তন করুন</string>
-    
     <string name="byletter_letters">ABCDEFGHIJKLMNOPQRSTUVWXYZ</string>
     <string name="btn_cancel">বাতিল</string>
     <string name="loading">লোড হচ্ছে …</string>
@@ -125,4 +119,10 @@
     <string name="lbl_tune_to_channel">চ্যানেল টিউন করুন</string>
     <string name="msg_recording_now">রেকর্ডিং হচ্ছে</string>
     <string name="lbl_play_first_unwatched">প্রথম অদেখা চালু করুন</string>
+    <string name="lbl_home">হোম</string>
+    <string name="continue_listening">শোনা চালিয়ে যান</string>
+    <string name="lbl_exit">বাহির</string>
+    <string name="runtime_hours_minutes">%1$d ঘণ্টা %2$d মিনিট</string>
+    <string name="runtime_minutes">%1$d মিনিট</string>
+    <string name="lbl_runtime">রানটাইম</string>
 </resources>

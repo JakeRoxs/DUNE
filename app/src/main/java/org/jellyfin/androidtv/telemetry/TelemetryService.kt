@@ -68,8 +68,12 @@ object TelemetryService {
 			// Create connection
 			val connection = URL(url).openConnection() as HttpURLConnection
 			// Add authorization
+			val clientName = buildString {
+				append("Jellyfin for Android TV")
+				if (BuildConfig.DEBUG) append(" (debug)")
+			}
 			val authorization = AuthorizationHeaderBuilder.buildHeader(
-				clientName = BuildConfig.APPLICATION_ID,
+				clientName = clientName,
 				clientVersion = BuildConfig.VERSION_NAME,
 				deviceId = "",
 				deviceName = "",
@@ -93,9 +97,9 @@ object TelemetryService {
 		private fun CrashReportData.toReport(): String = buildMarkdown {
 			// Header
 			appendLine("---")
-			appendLine("client: Dune,a Jellyfin Client for Android TV")
+			appendLine("client: Jellyfin for Android TV")
 			appendLine("client_version: ${BuildConfig.VERSION_NAME}")
-			appendLine("client_repository: https://github.com/Sam42a/DUNE")
+			appendLine("client_repository: https://github.com/jellyfin/jellyfin-androidtv")
 			appendLine("type: crash_report")
 			appendLine("format: markdown")
 			appendLine("---")

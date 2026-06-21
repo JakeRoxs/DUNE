@@ -6,7 +6,6 @@ import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemPerson
 import org.jellyfin.sdk.model.api.ImageType
 import org.jellyfin.sdk.model.api.UserDto
-import org.jellyfin.sdk.model.serializer.toUUIDOrNull
 import java.util.UUID
 
 /**
@@ -28,16 +27,23 @@ fun JellyfinImage.getUrl(
 	maxHeight: Int? = null,
 	fillWidth: Int? = null,
 	fillHeight: Int? = null,
-): String = api.imageApi.getItemImageUrl(
-	itemId = item,
-	imageType = type,
-	tag = tag,
-	imageIndex = index,
-	maxWidth = maxWidth,
-	maxHeight = maxHeight,
-	fillWidth = fillWidth,
-	fillHeight = fillHeight,
-)
+): String = when (source) {
+	JellyfinImageSource.USER -> api.imageApi.getUserImageUrl(
+		userId = item,
+		tag = tag,
+	)
+
+	else -> api.imageApi.getItemImageUrl(
+		itemId = item,
+		imageType = type,
+		tag = tag,
+		imageIndex = index,
+		maxWidth = maxWidth,
+		maxHeight = maxHeight,
+		fillWidth = fillWidth,
+		fillHeight = fillHeight,
+	)
+}
 
 enum class JellyfinImageSource {
 	ITEM,
@@ -45,6 +51,8 @@ enum class JellyfinImageSource {
 	ALBUM,
 	SERIES,
 	CHANNEL,
+	USER,
+	CHAPTER,
 }
 
 // UserDto
@@ -52,7 +60,7 @@ val UserDto.primaryImage
 	get() = primaryImageTag?.let { primaryImageTag ->
 		JellyfinImage(
 			item = id,
-			source = JellyfinImageSource.ITEM,
+			source = JellyfinImageSource.USER,
 			type = ImageType.PRIMARY,
 			tag = primaryImageTag,
 			blurHash = null,
@@ -91,7 +99,7 @@ val BaseItemDto.itemBackdropImages
 
 val BaseItemDto.parentImages
 	get() = mapOf(
-		ImageType.PRIMARY to (parentPrimaryImageItemId?.toUUIDOrNull() to parentPrimaryImageTag),
+		ImageType.PRIMARY to (parentPrimaryImageItemId to parentPrimaryImageTag),
 		ImageType.LOGO to (parentLogoItemId to parentLogoImageTag),
 		ImageType.ART to (parentArtItemId to parentArtImageTag),
 		ImageType.THUMB to (parentThumbItemId to parentThumbImageTag),
@@ -112,10 +120,10 @@ val BaseItemDto.parentImages
 	}.associateBy { it.type }
 
 val BaseItemDto.parentBackdropImages
-	get() = parentBackdropImageTags?.mapIndexed { index, tag ->
-		parentBackdropItemId?.let { validParentBackdropItemId ->
+	get() = parentBackdropItemId?.let { parentBackdropItemId ->
+		parentBackdropImageTags?.mapIndexed { index, tag ->
 			JellyfinImage(
-				item = validParentBackdropItemId,
+				item = parentBackdropItemId,
 				source = JellyfinImageSource.PARENT,
 				type = ImageType.BACKDROP,
 				tag = tag,
@@ -124,13 +132,13 @@ val BaseItemDto.parentBackdropImages
 				index = index,
 			)
 		}
-	}?.filterNotNull() ?: emptyList()
+	}.orEmpty()
 
 val BaseItemDto.albumPrimaryImage
 	get() = albumPrimaryImageTag?.let { albumPrimaryImageTag ->
-		albumId?.let { validAlbumId ->
+		albumId?.let { albumId ->
 			JellyfinImage(
-				item = validAlbumId,
+				item = albumId,
 				source = JellyfinImageSource.ALBUM,
 				type = ImageType.PRIMARY,
 				tag = albumPrimaryImageTag,
@@ -143,9 +151,9 @@ val BaseItemDto.albumPrimaryImage
 
 val BaseItemDto.channelPrimaryImage
 	get() = channelPrimaryImageTag?.let { channelPrimaryImageTag ->
-		channelId?.let { validChannelId ->
+		channelId?.let { channelId ->
 			JellyfinImage(
-				item = validChannelId,
+				item = channelId,
 				source = JellyfinImageSource.CHANNEL,
 				type = ImageType.PRIMARY,
 				tag = channelPrimaryImageTag,
@@ -158,9 +166,9 @@ val BaseItemDto.channelPrimaryImage
 
 val BaseItemDto.seriesPrimaryImage
 	get() = seriesPrimaryImageTag?.let { seriesPrimaryImageTag ->
-		seriesId?.let { validSeriesId ->
+		seriesId?.let { seriesId ->
 			JellyfinImage(
-				item = validSeriesId,
+				item = seriesId,
 				source = JellyfinImageSource.SERIES,
 				type = ImageType.PRIMARY,
 				tag = seriesPrimaryImageTag,
@@ -173,9 +181,9 @@ val BaseItemDto.seriesPrimaryImage
 
 val BaseItemDto.seriesThumbImage
 	get() = seriesThumbImageTag?.let { seriesThumbImageTag ->
-		seriesId?.let { validSeriesId ->
+		seriesId?.let { seriesId ->
 			JellyfinImage(
-				item = validSeriesId,
+				item = seriesId,
 				source = JellyfinImageSource.SERIES,
 				type = ImageType.THUMB,
 				tag = seriesThumbImageTag,
@@ -185,6 +193,19 @@ val BaseItemDto.seriesThumbImage
 			)
 		}
 	}
+
+val BaseItemDto.chapterImages
+	get() = chapters?.mapIndexed { index, chapter ->
+		JellyfinImage(
+			item = id,
+			source = JellyfinImageSource.CHAPTER,
+			type = ImageType.CHAPTER,
+			tag = chapter.imageTag.orEmpty(),
+			blurHash = null,
+			aspectRatio = null,
+			index = index,
+		)
+	}.orEmpty()
 
 val BaseItemDto.images
 	get() = listOfNotNull(
@@ -196,6 +217,7 @@ val BaseItemDto.images
 		listOfNotNull(channelPrimaryImage),
 		listOfNotNull(seriesPrimaryImage),
 		listOfNotNull(seriesThumbImage),
+		chapterImages,
 	).flatten()
 
 // BaseItemPerson

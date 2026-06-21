@@ -4,7 +4,6 @@
     android:installLocation="auto">
 
     <!-- Android TV Integration -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
 
     <!-- Generic permissions -->
@@ -15,29 +14,8 @@
         tools:ignore="LeanbackUsesWifi" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
-    <!-- Storage permissions -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
-
-    <!-- Search permissions (voice to text) - Only request on non-Fire TV devices -->
-    <uses-permission
-        android:name="android.permission.RECORD_AUDIO"
-        android:required="false"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.RECORD_AUDIO"
-        android:required="false"
-        tools:node="merge"
-        tools:ignore="UnusedAttribute" />
+    <!-- Search permissions (voice to text) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!-- Device feature requirements -->
     <uses-feature
@@ -57,51 +35,27 @@
                 android:host="youtube.com"
                 android:scheme="https" />
         </intent>
+
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="video/*" />
+        </intent>
     </queries>
 
     <application
         android:name=".JellyfinApplication"
         android:allowBackup="true"
         android:appCategory="video"
-        android:banner="@drawable/centered_banner"
-        android:logo="@drawable/app_logo"
+        android:banner="@mipmap/app_banner"
         android:dataExtractionRules="@xml/backup_rules"
         android:fullBackupContent="@xml/backup_content"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/app_icon"
         android:label="@string/app_name"
         android:largeHeap="true"
-        android:requestLegacyExternalStorage="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
         android:theme="@style/Theme.Jellyfin"
-        android:usesCleartextTraffic="true"
-        android:networkSecurityConfig="@xml/network_security_config">
-
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
-
-        <!-- Fire TV specific metadata for launcher icon optimization -->
-        <meta-data
-            android:name="amazon.device.banner"
-            android:resource="@drawable/tv_banner_fire_tv" />
-
-        <!-- Legacy service required for AccountManagerMigration -->
-        <service
-            android:name=".auth.service.AuthenticatorService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.accounts.AccountAuthenticator" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accounts.AccountAuthenticator"
-                android:resource="@xml/authenticator" />
-        </service>
+        android:usesCleartextTraffic="true">
 
         <!-- Screensaver -->
         <service
@@ -132,17 +86,6 @@
                 android:value="androidx.startup" />
         </provider>
 
-        <!-- FileProvider for APK installation -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
-
         <provider
             android:name=".integration.MediaContentProvider"
             android:authorities="${applicationId}.content"
@@ -155,14 +98,12 @@
             android:exported="true"
             android:initOrder="10" />
 
-        <!-- Main launcher activity with splash screen -->
+        <!-- Authentication -->
         <activity
             android:name=".ui.startup.StartupActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:noHistory="true"
-            android:screenOrientation="landscape"
-            android:theme="@style/Theme.Jellyfin.Splash"
             android:windowSoftInputMode="adjustNothing">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -184,41 +125,9 @@
         <!-- Main application -->
         <activity
             android:name=".ui.browsing.MainActivity"
-            android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="landscape"
-            android:windowSoftInputMode="adjustNothing">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="jellyfin" />
-                <data android:scheme="http" />
-                <data android:scheme="https" />
-                <data android:host="*" />
-                <data android:pathPattern="/items/.*" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:host="*"
-                    android:pathPattern="/items/.*"
-                    android:scheme="jellyfin" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".ui.preference.PreferencesComposeActivity"
-            android:screenOrientation="behind"
-            android:theme="@style/Theme.Jellyfin.Preferences" />
+            android:windowSoftInputMode="adjustNothing" />
 
         <activity android:name=".ui.playback.ExternalPlayerActivity" />
-
-        <meta-data
-            android:name="preloaded_fonts"
-            android:resource="@array/preloaded_fonts" />
     </application>
 </manifest>

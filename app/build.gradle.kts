@@ -1,9 +1,8 @@
 plugins {
-	id("com.android.application")
-	kotlin("android")
-	alias(libs.plugins.kotlin.serialization)
-	alias(libs.plugins.kotlin.compose)
 	alias(libs.plugins.aboutlibraries)
+	alias(libs.plugins.android.application)
+	alias(libs.plugins.kotlin.compose)
+	alias(libs.plugins.kotlin.serialization)
 }
 
 java {
@@ -31,6 +30,7 @@ android {
 		viewBinding = true
 		compose = true
 		dataBinding = true
+		resValues = true
 	}
 
 	compileOptions {
@@ -51,6 +51,27 @@ android {
 		}
 	}
 
+	signingConfigs {
+		val keystoreFile = getProperty("keystore.file")
+		val keystorePassword = getProperty("keystore.password")
+		val signingKeyAlias = getProperty("signing.key.alias")
+		val signingKeyPassword = getProperty("signing.key.password")
+
+		if (keystoreFile != null && keystorePassword != null && signingKeyAlias != null && signingKeyPassword != null) {
+			create("release") {
+				storeFile = file(keystoreFile)
+				storePassword = keystorePassword
+				keyAlias = signingKeyAlias
+				keyPassword = signingKeyPassword
+			}
+		}
+	}
+
+	dependenciesInfo {
+		includeInBundle = false
+		includeInApk = false
+	}
+
 	buildTypes {
 		val release by getting {
 			isMinifyEnabled = false
@@ -59,6 +80,8 @@ android {
 			resValue("string", "app_name", "@string/app_name_release")
 
 			buildConfigField("boolean", "DEVELOPMENT", "false")
+
+			signingConfig = signingConfigs.findByName("release")
 		}
 
 		val debug by getting {
@@ -104,23 +127,19 @@ android {
 		checkDependencies = true
 	}
 
-	// Configure output file names for APKs
-	applicationVariants.all {
-		val variant = this
-		val variantName = variant.name
-		val versionName = variant.versionName
-		variant.outputs.all {
-			val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-			if (variantName == "enhanced") {
-				output.outputFileName = "Dune.androidtv-0.1.1.apk"
-			} else {
-				output.outputFileName = "Dune.androidtv-${versionName}.apk"
-			}
-		}
-	}
-
 	testOptions.unitTests.all {
 		it.useJUnitPlatform()
+	}
+}
+
+androidComponents {
+	onVariants { variant ->
+		variant.outputs.forEach { output ->
+			output.outputFileName.set(
+				if (variant.name == "enhancedRelease") "Dune.androidtv-0.1.1.apk"
+				else "Dune.androidtv-${android.defaultConfig.versionName}.apk"
+			)
+		}
 	}
 }
 
@@ -154,6 +173,7 @@ tasks.register("buildEnhanced") {
 dependencies {
 	implementation("androidx.compose.material:material:1.5.0")
 	// Jellyfin
+	implementation(projects.design)
 	implementation(projects.playback.core)
 	implementation(projects.playback.jellyfin)
 	implementation(projects.playback.media3.exoplayer)
@@ -177,10 +197,12 @@ dependencies {
 	// Android(x)
 	implementation(libs.androidx.core)
 	implementation(libs.androidx.activity)
+	implementation(libs.androidx.activity.compose)
 	implementation(libs.androidx.fragment)
 	implementation(libs.androidx.fragment.compose)
 	implementation(libs.androidx.leanback.core)
 	implementation(libs.androidx.leanback.preference)
+	implementation(libs.androidx.navigation3.ui)
 	implementation(libs.androidx.preference)
 	implementation(libs.androidx.appcompat)
 	implementation(libs.androidx.tvprovider)
@@ -192,6 +214,7 @@ dependencies {
 	implementation(libs.androidx.cardview)
 	implementation(libs.androidx.startup)
 	implementation(libs.bundles.androidx.compose)
+	implementation(libs.accompanist.permissions)
 	implementation("androidx.tv:tv-material:1.0.0")
 	implementation("androidx.palette:palette:1.0.0")
 	implementation("androidx.compose.material3:material3:1.2.1")
@@ -234,7 +257,6 @@ dependencies {
 
 	// Network
 	implementation("com.squareup.okhttp3:okhttp:4.11.0")
-    implementation(libs.androidx.foundation.android)
 
 	coreLibraryDesugaring(libs.android.desugar)
 

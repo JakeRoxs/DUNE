@@ -7,10 +7,13 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -20,9 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,7 +49,6 @@ import org.jellyfin.androidtv.util.apiclient.itemImages
 import org.jellyfin.androidtv.util.apiclient.parentImages
 import org.jellyfin.playback.core.PlaybackManager
 import org.jellyfin.playback.jellyfin.queue.baseItem
-
 import org.jellyfin.playback.jellyfin.queue.baseItemFlow
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.model.api.ImageType
@@ -51,6 +56,7 @@ import org.koin.compose.koinInject
 
 @Composable
 fun NowPlayingComposable(
+	modifier: Modifier = Modifier,
 	onFocusableChange: (focusable: Boolean) -> Unit,
 ) {
 	val api = koinInject<ApiClient>()
@@ -59,86 +65,78 @@ fun NowPlayingComposable(
 
 	val entry by rememberQueueEntry(playbackManager)
 	val item = entry?.run { baseItemFlow.collectAsState(baseItem) }?.value
-	val progress = rememberPlayerProgress(playbackManager)
-	val playState by playbackManager.state.playState.collectAsState()
+	val progress by rememberPlayerProgress(playbackManager)
 
 	LaunchedEffect(item == null) { onFocusableChange(item != null) }
 
-	Box(modifier = Modifier.fillMaxSize()) {
-		AnimatedContent(
-			targetState = item,
-			transitionSpec = { fadeIn() togetherWith fadeOut() },
-		) { item ->
-			if (item != null) {
-				ButtonBase(
-					onClick = { navigationRepository.navigate(Destinations.nowPlaying) },
-					shape = JellyfinTheme.shapes.extraSmall,
-					modifier = Modifier
-						.widthIn(0.dp, 250.dp)
-				) {
-					Box(
-						modifier = Modifier
-							.align(Alignment.BottomStart)
-							.fillMaxWidth()
-							.height(1.dp)
-							.drawWithContent {
-								// Background
-								drawRect(Color.White, alpha = 0.4f)
-								// Foreground
-								drawRect(Color.White, size = size.copy(width = progress * size.width))
-							}
+	AnimatedContent(
+		modifier = modifier,
+		targetState = item,
+		transitionSpec = { fadeIn() togetherWith fadeOut() },
+	) { item ->
+		if (item != null) {
+			ButtonBase(
+				onClick = { navigationRepository.navigate(Destinations.nowPlaying) },
+				modifier = Modifier
+					.widthIn(100.dp, 250.dp)
+			) {
+				ProvideTextStyle(
+					value = TextStyle.Default.copy(
+						fontSize = 12.sp,
 					)
-
-					ProvideTextStyle(
-						value = TextStyle.Default.copy(
-							fontSize = 12.sp,
-						)
+				) {
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(6.dp),
+						verticalAlignment = Alignment.CenterVertically,
+						modifier = Modifier
+							.padding(3.dp)
 					) {
-						Row(
-							horizontalArrangement = Arrangement.spacedBy(10.dp),
-							verticalAlignment = Alignment.CenterVertically,
+						val image = item.itemImages[ImageType.PRIMARY] ?: item.albumPrimaryImage ?: item.parentImages[ImageType.PRIMARY]
+						val progressFillColor = JellyfinTheme.colorScheme.rangeControlFill
+
+						AsyncImage(
+							url = image?.getUrl(api),
+							blurHash = image?.blurHash,
+							placeholder = ContextCompat.getDrawable(LocalContext.current, R.drawable.ic_album),
+							aspectRatio = image?.aspectRatio ?: 1f,
 							modifier = Modifier
-								.padding(5.dp)
+								.size(35.dp)
+								.clip(CircleShape)
+								.drawWithContent {
+									drawContent()
+
+									val width = 3.dp.toPx()
+
+									// Background
+									drawCircle(
+										style = Stroke(width),
+										color = Color.Black,
+										alpha = 0.4f,
+									)
+									// Foreground
+									drawArc(
+										style = Stroke(width, cap = StrokeCap.Round),
+										color = progressFillColor,
+										useCenter = false,
+										startAngle = -90f,
+										sweepAngle = 360f * progress,
+									)
+								},
+							scaleType = ImageView.ScaleType.CENTER_CROP,
+						)
+
+						Column(
+							verticalArrangement = Arrangement.SpaceAround,
+							modifier = Modifier
+								.padding(start = 2.dp, end = 8.dp)
 						) {
-							val image = item.itemImages[ImageType.PRIMARY] ?: item.albumPrimaryImage ?: item.parentImages[ImageType.PRIMARY]
-
-							AsyncImage(
-								url = image?.getUrl(api),
-								blurHash = image?.blurHash,
-								placeholder = ContextCompat.getDrawable(LocalContext.current, R.drawable.ic_album),
-								aspectRatio = image?.aspectRatio ?: 1f,
-								modifier = Modifier
-									.size(35.dp)
-									.clip(RoundedCornerShape(4.dp)),
-								scaleType = ImageView.ScaleType.CENTER_CROP,
-							)
-
-							Column(
-								verticalArrangement = Arrangement.SpaceAround,
-							) {
-								// Name
-								Text(text = item.name.orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis)
-								val artists = item.artists ?: item.albumArtists ?: item.albumArtist?.let(::listOf)
-								Text(text = artists?.joinToString(", ").orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis)
-							}
+							// Name
+							Text(text = item.name.orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
+							val artists = item.artists ?: item.albumArtists ?: item.albumArtist?.let(::listOf)
+							Text(text = artists?.joinToString(", ").orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis)
 						}
 					}
 				}
-			}
-		}
-		// Loading/Buffering overlay
-		if (playState.toString().contains("BUFFERING")) {
-			Box(
-				modifier = Modifier
-					.fillMaxSize()
-					.background(JellyfinTheme.colorScheme.background.copy(alpha = 0.7f)),
-				contentAlignment = Alignment.Center
-			) {
-				CircularProgressIndicator(
-					color = JellyfinTheme.colorScheme.onBackground,
-					strokeWidth = 6.dp,
-					modifier = Modifier.size(64.dp)
-				)
 			}
 		}
 	}

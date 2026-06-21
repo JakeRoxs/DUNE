@@ -1,76 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    android:layout_width="match_parent" android:layout_height="match_parent">
 
-    <!-- Wrapper for logo/title to give them a consistent reference point -->
-    <FrameLayout
-        android:id="@+id/logoTitleContainer"
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:id="@+id/title"
         android:layout_alignParentTop="true"
         android:layout_alignParentStart="true"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="20dp"
-        android:minHeight="75dp">
-
-        <org.jellyfin.androidtv.ui.AsyncImageView
-            android:id="@+id/logo"
-            android:layout_width="335dp"
-            android:layout_height="75dp"
-            android:adjustViewBounds="true"
-            android:scaleType="fitStart"
-            android:focusableInTouchMode="false"
-            android:visibility="gone" />
-
-        <TextView
-            android:layout_width="430dp"
-            android:layout_height="55dp"
-            android:id="@+id/title"
-            android:layout_marginTop="4dp"
-            android:ellipsize="end"
-            android:fontFamily="@font/bebas_neue"
-            android:letterSpacing="0.02"
-            android:maxLines="1"
-            android:text=""
-            android:textAllCaps="true"
-            android:textColor="@color/basic_button_text"
-            android:textSize="31sp"
-            android:textStyle="bold"
-            android:typeface="monospace"
-            android:visibility="visible"
-            android:focusableInTouchMode="false" />
-    </FrameLayout>
+        android:layout_marginStart="60sp"
+        android:layout_marginTop="20sp"
+        android:textSize="32sp"
+        android:layout_toStartOf="@+id/npBug"
+        android:layout_marginEnd="10sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif-light"
+         />
 
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="wrap_content"
         android:layout_height="20sp"
-        android:layout_below="@+id/logoTitleContainer"
-        android:layout_alignParentStart="true"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="15dp"
-        android:id="@+id/infoRow" />
+        android:layout_below="@+id/title"
+        android:layout_alignStart="@+id/title"
+        android:layout_marginTop="3sp"
+        android:id="@+id/infoRow"
+        android:layout_toStartOf="@+id/clock"/>
 
-    <org.jellyfin.androidtv.ui.shared.ShadowedTextView
+    <TextView
+        android:layout_width="570sp"
+        android:layout_height="150sp"
         android:id="@+id/summary"
-        android:layout_width="500sp"
-        android:layout_height="130sp"
         android:layout_below="@+id/infoRow"
-        android:layout_alignParentStart="true"
-        android:layout_marginStart="16dp"
+        android:layout_alignStart="@+id/infoRow"
         android:ellipsize="end"
         android:textSize="16sp"
-        android:layout_marginTop="20sp"
-        android:maxLines="4"
-        android:textColor="@android:color/white"
-        android:justificationMode="inter_word"
-        android:textAlignment="viewStart"
-        android:gravity="fill_horizontal"
-        android:paddingEnd="16dp"
-        tools:ignore="RtlCompat" />
+        android:layout_marginTop="12sp"
+        android:maxLines="7"
+        android:fontFamily="sans-serif-light" />
 
     <FrameLayout
         android:layout_width="fill_parent"
@@ -78,24 +46,22 @@
         android:layout_below="@+id/summary"
         android:id="@+id/rowsFragment"
         android:layout_alignParentStart="true"
-        android:layout_marginStart="-25sp"
-        android:layout_marginTop="-18dp"/>
+        android:layout_marginTop="5sp"/>
 
     <org.jellyfin.androidtv.ui.ClockUserView
-        android:id="@+id/fdClock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentTop="false"
-        android:layout_marginEnd="46sp"
-        android:layout_marginTop="27dp" />
+        android:id="@+id/clock"
+        android:layout_alignTop="@+id/title"
+        android:layout_marginEnd="40sp"
+        android:layout_alignParentEnd="true" />
 
-    <org.jellyfin.androidtv.ui.NowPlayingWrapperView
-        android:id="@+id/npBug"
+    <org.jellyfin.androidtv.ui.NowPlayingView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@id/fdClock"
-        android:layout_toStartOf="@id/fdClock"
-        android:layout_marginEnd="25dp" />
+        android:id="@+id/npBug"
+        android:layout_alignBottom="@+id/clock"
+        android:layout_marginEnd="25dp"
+        android:layout_toStartOf="@+id/clock" />
 
 </RelativeLayout>

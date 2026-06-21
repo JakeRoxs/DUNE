@@ -1,104 +1,142 @@
 package org.jellyfin.androidtv.ui.search
 
-import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
-import android.speech.RecognizerIntent
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
-import org.jellyfin.androidtv.R
-import org.jellyfin.androidtv.data.service.BackgroundService
-import org.jellyfin.androidtv.ui.itemhandling.ItemLauncher
-import org.koin.android.ext.android.inject
-import org.koin.androidx.viewmodel.ext.android.viewModel
+import androidx.fragment.compose.AndroidFragment
+import androidx.fragment.compose.content
+import androidx.leanback.app.RowsSupportFragment
+import org.jellyfin.androidtv.ui.search.composable.SearchTextInput
+import org.jellyfin.androidtv.ui.search.composable.SearchVoiceInput
+import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbar
+import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbarActiveButton
+import org.jellyfin.androidtv.util.speech.rememberSpeechRecognizerAvailability
+import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
-import timber.log.Timber
 
 class SearchFragment : Fragment() {
 	companion object {
 		const val EXTRA_QUERY = "query"
 	}
 
-	private val viewModel: SearchViewModel by viewModel()
-	private val backgroundService: BackgroundService by inject()
-	private val searchFragmentDelegate: SearchFragmentDelegate by inject {
-		parametersOf(requireContext())
-	}
-
-	private val voiceSearchLauncher = registerForActivityResult(
-		ActivityResultContracts.StartActivityForResult()
-	) { result ->
-		if (result.resultCode == Activity.RESULT_OK) {
-			val matches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-			if (!matches.isNullOrEmpty()) {
-				voiceSearchResult = matches[0]
-				viewModel.searchImmediately(matches[0])
-			}
-		} else {
-			Toast.makeText(requireContext(), "No voice input recognized", Toast.LENGTH_SHORT).show()
-		}
-	}
-
-	private fun launchVoiceSearch() {
-		try {
-			val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-				putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-				putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.lbl_voice_search))
-			}
-			voiceSearchLauncher.launch(intent)
-		} catch (e: Exception) {
-			Toast.makeText(requireContext(), "Voice search not supported", Toast.LENGTH_SHORT).show()
-		}
-	}
-
-	private var voiceSearchResult: String? = null
-
 	override fun onCreateView(
 		inflater: LayoutInflater,
 		container: ViewGroup?,
 		savedInstanceState: Bundle?
-	): View {
-		return ComposeView(requireContext()).apply {
-			setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+	) = content {
+		val viewModel = koinViewModel<SearchViewModel>()
+		val searchFragmentDelegate = koinInject<SearchFragmentDelegate> { parametersOf(requireContext()) }
+		var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
+		val textInputFocusRequester = remember { FocusRequester() }
+		val resultFocusRequester = remember { FocusRequester() }
+		val speechRecognizerAvailability = rememberSpeechRecognizerAvailability()
 
-			setContent {
-				SearchScreen(
-					viewModel = viewModel,
-					onNavigateToItem = { baseRowItem ->
-						val itemLauncher: ItemLauncher by inject()
-						itemLauncher.launch(baseRowItem, null, requireContext())
-					},
-					onVoiceSearch = {
-						launchVoiceSearch()
-					}
-				)
+		LaunchedEffect(Unit) {
+			val extraQuery = arguments?.getString(EXTRA_QUERY)
+			if (!extraQuery.isNullOrBlank()) {
+				query = query.copy(text = extraQuery)
+				viewModel.searchImmediately(extraQuery)
+				resultFocusRequester.requestFocus()
+			} else {
+				textInputFocusRequester.requestFocus()
+			}
+
+			viewModel.searchResultsFlow.collect { results ->
+				searchFragmentDelegate.showResults(results)
 			}
 		}
-	}
 
-	override fun onResume() {
-		super.onResume()
-		org.jellyfin.androidtv.ui.itemdetail.ThemeSongs.setAnyFragmentActive(true)
+		Column {
+			MainToolbar(MainToolbarActiveButton.Search)
 
-	}
-	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-		super.onViewCreated(view, savedInstanceState)
+			Row(
+				horizontalArrangement = Arrangement.spacedBy(12.dp),
+				verticalAlignment = Alignment.CenterVertically,
+				modifier = Modifier
+					.focusRestorer()
+					.focusGroup()
+					.padding(horizontal = 48.dp)
+			) {
+				if (speechRecognizerAvailability) {
+					SearchVoiceInput(
+						onQueryChange = { query = query.copy(text = it) },
+						onQuerySubmit = {
+							viewModel.searchImmediately(query.text)
+							resultFocusRequester.requestFocus()
+						}
+					)
+				}
 
-		try {
-			backgroundService.clearBackgrounds()
-		} catch (e: Exception) {
-			Timber.e(e, "Error clearing backdrops in SearchFragment")
+				SearchTextInput(
+					query = query.text,
+					onQueryChange = {
+						query = query.copy(text = it)
+						viewModel.searchDebounced(query.text)
+					},
+					onQuerySubmit = {
+						viewModel.searchImmediately(query.text)
+						// Note: We MUST change the focus to somewhere else when the keyboard is submitted because some vendors (like Amazon)
+						// will otherwise just keep showing a (fullscreen) keyboard, soft-locking the app.
+						resultFocusRequester.requestFocus()
+					},
+					modifier = Modifier
+						.weight(1f)
+						.focusRequester(textInputFocusRequester),
+				)
+			}
+
+			// The leanback code has its own awful focus handling that doesn't work properly with Compose view inteop to workaround this
+			// issue we add custom behavior that only allows focus exit when the current selected row is the first one. Additionally when
+			// we do switch the focus, we reset the leanback state so it won't cause weird behavior when focus is regained
+			var rowsSupportFragment by remember { mutableStateOf<RowsSupportFragment?>(null) }
+
+			AndroidFragment<RowsSupportFragment>(
+				modifier = Modifier
+					.focusGroup()
+					.focusRequester(resultFocusRequester)
+					.focusProperties {
+						onExit = {
+							val isFirstRowSelected = rowsSupportFragment?.selectedPosition?.let { it <= 0 } ?: false
+							if (requestedFocusDirection != FocusDirection.Up || !isFirstRowSelected) {
+								cancelFocusChange()
+							} else {
+								rowsSupportFragment?.selectedPosition = 0
+								rowsSupportFragment?.verticalGridView?.clearFocus()
+							}
+						}
+					}
+					.padding(top = 5.dp)
+					.fillMaxSize(),
+				onUpdate = { fragment ->
+					rowsSupportFragment = fragment
+					fragment.adapter = searchFragmentDelegate.rowsAdapter
+					fragment.onItemViewClickedListener = searchFragmentDelegate.onItemViewClickedListener
+					fragment.onItemViewSelectedListener = searchFragmentDelegate.onItemViewSelectedListener
+				}
+			)
 		}
 	}
-
-	override fun onDestroyView() {
-		super.onDestroyView()
-	}
-
 }

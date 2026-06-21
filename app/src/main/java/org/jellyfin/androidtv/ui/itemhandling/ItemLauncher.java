@@ -1,12 +1,8 @@
 package org.jellyfin.androidtv.ui.itemhandling;
 
 import android.content.Context;
-import android.os.Looper;
-import android.os.SystemClock;
 
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
 
 import org.jellyfin.androidtv.constant.LiveTvOption;
 import org.jellyfin.androidtv.constant.QueryType;
@@ -18,9 +14,8 @@ import org.jellyfin.androidtv.ui.navigation.Destinations;
 import org.jellyfin.androidtv.ui.navigation.NavigationRepository;
 import org.jellyfin.androidtv.ui.playback.MediaManager;
 import org.jellyfin.androidtv.ui.playback.PlaybackLauncher;
+import org.jellyfin.androidtv.ui.presentation.MutableObjectAdapter;
 import org.jellyfin.androidtv.util.PlaybackHelper;
-import org.jellyfin.androidtv.ui.browsing.MainActivity;
-import org.jellyfin.androidtv.ui.home.HomeFragment;
 import org.jellyfin.androidtv.util.Utils;
 import org.jellyfin.androidtv.util.apiclient.Response;
 import org.jellyfin.androidtv.util.sdk.compat.JavaCompat;
@@ -37,46 +32,11 @@ import kotlin.Lazy;
 import timber.log.Timber;
 
 public class ItemLauncher {
-    // Minimum time between clicks (500ms)
-    private static final long MIN_CLICK_INTERVAL = 500;
-    private static long lastClickTime = 0;
     private final Lazy<NavigationRepository> navigationRepository = KoinJavaComponent.<NavigationRepository>inject(NavigationRepository.class);
     private final Lazy<PreferencesRepository> preferencesRepository = KoinJavaComponent.<PreferencesRepository>inject(org.jellyfin.androidtv.preference.PreferencesRepository .class);
     private final Lazy<MediaManager> mediaManager = KoinJavaComponent.<MediaManager>inject(MediaManager.class);
     private final Lazy<PlaybackLauncher> playbackLauncher = KoinJavaComponent.<PlaybackLauncher>inject(PlaybackLauncher.class);
     private final Lazy<PlaybackHelper> playbackHelper = KoinJavaComponent.<PlaybackHelper>inject(PlaybackHelper.class);
-    
-    private boolean isInteractionAllowed(Context context) {
-        // Fast path - if context is null, allow interaction to prevent crashes
-        if (context == null) return true;
-        
-        // Fast path - if not a FragmentActivity, allow interaction
-        if (!(context instanceof FragmentActivity)) return true;
-        
-        // Only check for HomeFragment on the UI thread to prevent ANR
-        if (Looper.myLooper() != Looper.getMainLooper()) {
-            Timber.w("Interaction check called off main thread - allowing by default");
-            return true;
-        }
-        
-        try {
-            FragmentActivity activity = (FragmentActivity) context;
-            
-            // Check if the current fragment is HomeFragment using the fragment manager
-            Fragment currentFragment = activity.getSupportFragmentManager()
-                .findFragmentById(android.R.id.content);
-                
-            // Only block if current fragment is HomeFragment and it's not ready
-            if (currentFragment instanceof HomeFragment) {
-                return ((HomeFragment) currentFragment).isReadyForInteraction;
-            }
-        } catch (Exception e) {
-            Timber.e(e, "Error checking interaction permission");
-        }
-        
-        // Default to allowing interaction
-        return true;
-    }
 
     public void launchUserView(@Nullable final BaseItemDto baseItem) {
         Timber.d("**** Collection type: %s", baseItem.getCollectionType());
@@ -96,36 +56,22 @@ public class ItemLauncher {
                 LibraryPreferences displayPreferences = preferencesRepository.getValue().getLibraryPreferences(baseItem.getDisplayPreferencesId());
                 boolean enableSmartScreen = displayPreferences.get(LibraryPreferences.Companion.getEnableSmartScreen());
 
-                if (!enableSmartScreen) return Destinations.INSTANCE.libraryBrowser(baseItem);
+                if (!enableSmartScreen) return Destinations.INSTANCE.libraryBrowser(baseItem, null);
                 else return Destinations.INSTANCE.librarySmartScreen(baseItem);
             case MUSIC:
             case LIVETV:
                 return Destinations.INSTANCE.librarySmartScreen(baseItem);
             default:
-                return Destinations.INSTANCE.libraryBrowser(baseItem);
+                return Destinations.INSTANCE.libraryBrowser(baseItem, null);
         }
     }
 
-    public void launch(final BaseRowItem rowItem, ItemRowAdapter adapter, final Context context) {
-        // Prevent multiple clicks in quick succession
-        long currentClickTime = SystemClock.elapsedRealtime();
-        if (currentClickTime - lastClickTime < MIN_CLICK_INTERVAL) {
-            Timber.d("Click throttled - too fast");
-            return;
-        }
-        
-        // Check if interaction is allowed (home screen loaded)
-        if (!isInteractionAllowed(context)) {
-            Timber.d("Interaction blocked - home screen still loading");
-            return;
-        }
-        lastClickTime = currentClickTime;
-
+    public void launch(final BaseRowItem rowItem, MutableObjectAdapter<Object> adapter, final Context context) {
         switch (rowItem.getBaseRowType()) {
             case BaseItem:
                 BaseItemDto baseItem = rowItem.getBaseItem();
                 try {
-                    Timber.d("Item selected: %s (%s)", baseItem.getName(), baseItem.getType().toString());
+                    Timber.i("Item selected: %s (%s)", baseItem.getName(), baseItem.getType().toString());
                 } catch (Exception e) {
                     //swallow it
                 }
@@ -155,8 +101,8 @@ public class ItemLauncher {
                             navigationRepository.getValue().navigate(Destinations.INSTANCE.getNowPlaying());
                         } else if (mediaManager.getValue().hasAudioQueueItems() && rowItem instanceof AudioQueueBaseRowItem && adapter.indexOf(rowItem) < mediaManager.getValue().getCurrentAudioQueueSize()) {
                             Timber.d("playing audio queue item");
-                            mediaManager.getValue().playFrom(rowItem.getBaseItem());
-                        } else if (adapter.getQueryType() == QueryType.Search) {
+                            mediaManager.getValue().playFrom(((AudioQueueBaseRowItem) rowItem).getQueueEntry());
+                        } else if (adapter instanceof ItemRowAdapter && ((ItemRowAdapter)adapter).getQueryType() == QueryType.Search) {
                             playbackLauncher.getValue().launch(context, Arrays.asList(rowItem.getBaseItem()));
                         } else {
                             Timber.d("playing audio item");
@@ -180,12 +126,14 @@ public class ItemLauncher {
                         return;
 
                     case PHOTO:
-                        navigationRepository.getValue().navigate(Destinations.INSTANCE.pictureViewer(
-                                baseItem.getId(),
-                                false,
-                                adapter.getSortBy(),
-                                adapter.getSortOrder()
-                        ));
+                        if (adapter instanceof ItemRowAdapter) {
+                            navigationRepository.getValue().navigate(Destinations.INSTANCE.photoPlayer(
+                                    baseItem.getId(),
+                                    false,
+                                    ((ItemRowAdapter) adapter).getSortBy(),
+                                    ((ItemRowAdapter) adapter).getSortOrder()
+                            ));
+                        }
                         return;
 
                 }
@@ -199,7 +147,7 @@ public class ItemLauncher {
                         baseItem = JavaCompat.copyWithDisplayPreferencesId(baseItem, baseItem.getId().toString());
                     }
 
-                    navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryBrowser(baseItem));
+                    navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryBrowser(baseItem, null));
                 } else {
                     switch (rowItem.getSelectAction()) {
 
@@ -211,6 +159,7 @@ public class ItemLauncher {
                             playbackHelper.getValue().getItemsToPlay(context, baseItem, baseItem.getType() == BaseItemKind.MOVIE, false, new Response<List<BaseItemDto>>() {
                                 @Override
                                 public void onResponse(List<BaseItemDto> response) {
+                                    if (!isActive()) return;
                                     playbackLauncher.getValue().launch(context, response);
                                 }
                             });
@@ -228,6 +177,7 @@ public class ItemLauncher {
                 ItemLauncherHelper.getItem(rowItem.getItemId(), new Response<BaseItemDto>() {
                     @Override
                     public void onResponse(BaseItemDto response) {
+                        if (!isActive()) return;
                         List<BaseItemDto> items = new ArrayList<>(1);
                         items.add(response);
                         Long start = chapter.getStartPositionTicks() / 10000;
@@ -249,6 +199,7 @@ public class ItemLauncher {
                         ItemLauncherHelper.getItem(program.getChannelId(), new Response<BaseItemDto>() {
                             @Override
                             public void onResponse(BaseItemDto response) {
+                                if (!isActive()) return;
                                 List<BaseItemDto> items = new ArrayList<>(1);
                                 items.add(response);
                                 playbackLauncher.getValue().launch(context, items);
@@ -264,9 +215,11 @@ public class ItemLauncher {
                 ItemLauncherHelper.getItem(channel.getId(), new Response<BaseItemDto>() {
                     @Override
                     public void onResponse(BaseItemDto response) {
+                        if (!isActive()) return;
                         playbackHelper.getValue().getItemsToPlay(context, response, false, false, new Response<List<BaseItemDto>>() {
                             @Override
                             public void onResponse(List<BaseItemDto> response) {
+                                if (!isActive()) return;
                                 playbackLauncher.getValue().launch(context, response);
                             }
                         });
@@ -285,6 +238,7 @@ public class ItemLauncher {
                         ItemLauncherHelper.getItem(rowItem.getBaseItem().getId(), new Response<BaseItemDto>() {
                             @Override
                             public void onResponse(BaseItemDto response) {
+                                if (!isActive()) return;
                                 List<BaseItemDto> items = new ArrayList<>(1);
                                 items.add(response);
                                 playbackLauncher.getValue().launch(context, items);

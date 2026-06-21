@@ -54,10 +54,4 @@ fun MediaSourceInfo.getVideoStream() = mediaStreams?.firstOrNull {
 	it.type == org.jellyfin.sdk.model.api.MediaStreamType.VIDEO
 }
 
-fun BaseItemDto.copyWithMediaSources(
-	mediaSources: List<MediaSourceInfo>?
-) = copy(
-	mediaSources = mediaSources
-)
-
 val BaseItemDto.canResume get() = (userData?.playbackPositionTicks ?: 0) > 0

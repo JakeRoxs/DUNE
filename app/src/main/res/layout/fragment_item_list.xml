@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -9,9 +8,9 @@
         android:layout_height="match_parent" />
 
     <ScrollView
-        android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:id="@+id/scrollView"
         android:layout_marginTop="10sp"
         android:scrollbars="none">
 
@@ -20,45 +19,38 @@
             android:layout_height="wrap_content">
 
             <org.jellyfin.androidtv.ui.DetailRowView
-                android:id="@+id/details"
-                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:id="@+id/details"
                 android:layout_marginBottom="10sp" />
 
             <org.jellyfin.androidtv.ui.ItemListView
-                android:id="@+id/songs"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:id="@+id/songs"
                 android:layout_below="@+id/details"
-                android:paddingBottom="40dp"
-                android:paddingTop="20dp" />
+                android:paddingTop="20dp"
+                android:paddingBottom="40dp" />
 
         </RelativeLayout>
+
     </ScrollView>
 
     <org.jellyfin.androidtv.ui.ClockUserView
-        android:id="@+id/fdClock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:id="@+id/fdClock"
         android:layout_alignParentEnd="true"
         android:layout_alignParentTop="false"
-        android:layout_marginEnd="40dp"
         android:layout_marginStart="25dp"
-        android:layout_marginTop="20dp" />
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="40dp" />
 
-    <org.jellyfin.androidtv.ui.NowPlayingWrapperView
-        android:id="@+id/npBug"
+    <org.jellyfin.androidtv.ui.NowPlayingView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:id="@+id/npBug"
         android:layout_alignBottom="@+id/fdClock"
         android:layout_toStartOf="@+id/fdClock" />
-
-    <ProgressBar
-        android:id="@+id/loadingIndicator"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:visibility="gone"
-        android:indeterminate="true" />
 
 </RelativeLayout>

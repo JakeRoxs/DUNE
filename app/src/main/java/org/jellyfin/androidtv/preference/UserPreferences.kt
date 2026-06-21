@@ -1,21 +1,18 @@
 package org.jellyfin.androidtv.preference
 
 import android.content.Context
-import android.view.KeyEvent
 import androidx.preference.PreferenceManager
 import org.jellyfin.androidtv.preference.UserPreferences.Companion.screensaverInAppEnabled
-import org.jellyfin.androidtv.preference.constant.AppLanguage
+import org.jellyfin.androidtv.preference.constant.AVCLevel
 import org.jellyfin.androidtv.preference.constant.AppTheme
 import org.jellyfin.androidtv.preference.constant.AudioBehavior
-import org.jellyfin.androidtv.preference.constant.AudioLanguage
-import org.jellyfin.androidtv.preference.constant.CarouselSortBy
+import org.jellyfin.androidtv.preference.constant.BackdropBehavior
+import org.jellyfin.androidtv.preference.constant.BufferLength
 import org.jellyfin.androidtv.preference.constant.ClockBehavior
+import org.jellyfin.androidtv.preference.constant.HEVCLevel
 import org.jellyfin.androidtv.preference.constant.NextUpBehavior
-import org.jellyfin.androidtv.preference.constant.RatingType
 import org.jellyfin.androidtv.preference.constant.RefreshRateSwitchingBehavior
-import org.jellyfin.androidtv.preference.constant.ScreensaverSortBy
-import org.jellyfin.androidtv.preference.constant.SkipDuration
-import org.jellyfin.androidtv.preference.constant.SubtitleLanguage
+import org.jellyfin.androidtv.preference.constant.StillWatchingBehavior
 import org.jellyfin.androidtv.preference.constant.WatchedIndicatorBehavior
 import org.jellyfin.androidtv.preference.constant.ZoomMode
 import org.jellyfin.androidtv.ui.playback.segment.MediaSegmentAction
@@ -39,59 +36,23 @@ import kotlin.time.Duration.Companion.minutes
 class UserPreferences(context: Context) : SharedPreferenceStore(
 	sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
 ) {
-
 	companion object {
-		/**
-		 * App language preference
-		 * Uses the device default if not set
-		 */
-		var appLanguage = enumPreference("app_language", AppLanguage.SYSTEM_DEFAULT)
-
 		/* Display */
-		/**
-		 * Image quality preference: low, normal, high
-		 */
-		var imageQuality = stringPreference("image_quality", "normal")
 		/**
 		 * Select the app theme
 		 */
-		var appTheme = enumPreference("app_theme", AppTheme.MUTED_PURPLE)
+		var appTheme = enumPreference("app_theme", AppTheme.DARK)
 
 		/**
-		 * Enable background images while browsing
+		 * Behavior of app background while browsing
 		 */
-		var backdropEnabled = booleanPreference("pref_show_backdrop", true)
-
-		/**
-		 * Backdrop fading intensity from 0 (no fade) to 1.0 (full fade)
-		 */
-		var backdropFadingIntensity = floatPreference("pref_backdrop_fading_intensity", 0.6f)
-
-		/**
-		 * Use dynamic extracted colors for backdrop instead of solid theme color
-		 */
-		var backdropDynamicColors = booleanPreference("pref_backdrop_dynamic_colors", true)
-
-		/**
-		 * Show premieres on home screen
-		 */
-		var premieresEnabled = booleanPreference("pref_enable_premieres", false)
-
-		/**
-		 * Enable management of media like deleting items when the user has sufficient permissions.
-		 */
-		var mediaManagementEnabled = booleanPreference("enable_media_management", false)
-
-		/**
-		 * Enable Christmas snowfall effect on carousel
-		 */
-		var snowfallEnabled = booleanPreference("pref_snowfall_enabled", false)
+		var backdropBehavior = enumPreference("backdrop_behavior", BackdropBehavior.BACKDROP_WITH_BLUR)
 
 		/* Playback - General*/
 		/**
 		 * Maximum bitrate in megabit for playback.
 		 */
-		var maxBitrate = stringPreference("pref_max_bitrate", "200")
+		var maxBitrate = stringPreference("pref_max_bitrate", "100")
 
 		/**
 		 * Auto-play next item
@@ -110,11 +71,6 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		var nextUpTimeout = intPreference("next_up_timeout", 1000 * 7)
 
 		/**
-		 * Duration in milliseconds before player UI controls automatically hide
-		 * Default: 15000ms (15 seconds)
-		 */
-		var playerControlsHideDuration = intPreference("pref_player_controls_hide_duration", 15_000)
-		/**
 		 * Duration in seconds to subtract from resume time
 		 */
 		var resumeSubtractDuration = stringPreference("pref_resume_preroll", "0")
@@ -124,11 +80,21 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		 */
 		var cinemaModeEnabled = booleanPreference("pref_enable_cinema_mode", true)
 
+		/**
+		 * Enable still watching
+		 */
+		var stillWatchingBehavior = enumPreference("enable_still_watching", StillWatchingBehavior.DISABLED)
+
 		/* Playback - Video */
 		/**
 		 * Whether to use an external playback application or not.
 		 */
 		var useExternalPlayer = booleanPreference("external_player", false)
+
+		/**
+		 * Component name for the external playback application.
+		 */
+		var externalPlayerComponentName = stringPreference("external_player_component", "")
 
 		/**
 		 * Change refresh rate to match media when device supports it
@@ -141,10 +107,19 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		var preferExoPlayerFfmpeg = booleanPreference("exoplayer_prefer_ffmpeg", defaultValue = false)
 
 		/**
-		 * Enable hardware acceleration for video decoding.
+		 * User defined AVC level override. AUTO uses device-reported capabilities.
 		 */
-		var hardwareAccelerationEnabled = booleanPreference("hardware_acceleration_enabled", defaultValue = true)
+		var userAVCLevel = enumPreference("user_avc_level", AVCLevel.AUTO)
 
+		/**
+		 * User defined HEVC level override. AUTO uses device-reported capabilities.
+		 */
+		var userHEVCLevel = enumPreference("user_hevc_level", HEVCLevel.AUTO)
+
+		/**
+		 * Playback buffer size preset.
+		 */
+		var bufferLength = enumPreference("buffer_length", BufferLength.AUTO)
 
 		/* Playback - Audio related */
 		/**
@@ -162,31 +137,11 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		 */
 		var ac3Enabled = booleanPreference("pref_bitstream_ac3", true)
 
-		/**
-		 * Enable libass.
-		 */
-		var assDirectPlay = booleanPreference("libass_enabled", true)
-
-		/**
-		 * Enable PGS subtitle direct-play.
-		 */
-		var pgsDirectPlay = booleanPreference("pgs_enabled", true)
-
 		/* Live TV */
 		/**
 		 * Use direct play
 		 */
-		var liveTvDirectPlayEnabled = booleanPreference("pref_live_direct", false)
-
-		/**
-		 * Shortcut used for changing the audio track
-		 */
-		var shortcutAudioTrack = intPreference("shortcut_audio_track", KeyEvent.KEYCODE_MEDIA_AUDIO_TRACK)
-
-		/**
-		 * Shortcut used for changing the subtitle track
-		 */
-		var shortcutSubtitleTrack = intPreference("shortcut_subtitle_track", KeyEvent.KEYCODE_CAPTIONS)
+		var liveTvDirectPlayEnabled = booleanPreference("pref_live_direct", true)
 
 		/* Developer options */
 		/**
@@ -194,6 +149,10 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		 */
 		var debuggingEnabled = booleanPreference("pref_enable_debug", false)
 
+		/**
+		 * Use playback rewrite module for video
+		 */
+		var playbackRewriteVideoEnabled = booleanPreference("playback_new", false)
 
 		/**
 		 * When to show the clock.
@@ -201,24 +160,9 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		var clockBehavior = enumPreference("pref_clock_behavior", ClockBehavior.ALWAYS)
 
 		/**
-		 * Set which ratings provider should show on MyImageCardViews
-		 */
-		var defaultRatingType = enumPreference("pref_rating_type", RatingType.RATING_TOMATOES)
-
-		/**
 		 * Set when watched indicators should show on MyImageCardViews
 		 */
 		var watchedIndicatorBehavior = enumPreference("pref_watched_indicator_behavior", WatchedIndicatorBehavior.ALWAYS)
-
-		/**
-		 * Show resolution badge on movie cards
-		 */
-		var showResolutionBadge = booleanPreference("pref_show_resolution_badge", true)
-
-		/**
-		 * Show audio codec badge on movie cards
-		 */
-		var showAudioCodecBadge = booleanPreference("pref_show_audio_codec_badge", false)
 
 		/**
 		 * Enable series thumbnails in home screen rows
@@ -226,29 +170,14 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		var seriesThumbnailsEnabled = booleanPreference("pref_enable_series_thumbnails", true)
 
 		/**
-		 * Enable thumbnails in GoogleTV Launcher
-		 */
-		var launcherThumbnailsEnabled = booleanPreference("pref_enable_launcher_thumbnails", true)
-
-		/**
-		 * Enable all Android TV launcher channels
-		 */
-		var launcherChannelsEnabled = booleanPreference("pref_enable_launcher_channels", true)
-
-		/**
-		 * Sorting method for carousel items
-		 */
-		var carouselSortBy = enumPreference("carousel_sort_by", CarouselSortBy.RELEASE_DATE)
-
-		/**
-		 * Enable Series in carousel alongside Movies
-		 */
-		var carouselIncludeSeries = booleanPreference("carousel_include_series", false)
-
-		/**
 		 * Subtitles foreground color
 		 */
 		var subtitlesBackgroundColor = longPreference("subtitles_background_color", 0x00FFFFFF)
+
+		/**
+		 * Subtitles bold text
+		 */
+		var subtitlesTextWeight = intPreference("subtitles_text_weight", 400)
 
 		/**
 		 * Subtitles foreground color
@@ -261,32 +190,14 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		var subtitleTextStrokeColor = longPreference("subtitles_text_stroke_color", 0xFF000000)
 
 		/**
-		 * Subtitles font size (1.0f = 100%)
+		 * Subtitles font size
 		 */
-		var subtitlesTextSize = floatPreference("subtitles_text_size", 1.0f)
+		var subtitlesTextSize = floatPreference("subtitles_text_size", 24f)
 
 		/**
-		 * Subtitles text weight value (400 = normal, 700 = bold)
+		 * Subtitles offset
 		 */
-		var subtitlesTextWeightValue = intPreference("subtitles_text_weight_value", 400)
-
-		/**
-		 * Default subtitle language
-		 * Default is set to use video's default Set Subtitle
-		 */
-		var defaultSubtitleLanguage = enumPreference("default_subtitle_language", SubtitleLanguage.DEFAULT)
-
-		/**
-		 * Default audio language
-		 * Default is set to English
-		 */
-		var defaultAudioLanguage = enumPreference("default_audio_language", AudioLanguage.ENGLISH)
-
-		/**
-		 * Skip commentary audio tracks
-		 * When enabled, audio tracks marked as commentary will be skipped during selection
-		 */
-		var skipCommentaryTracks = booleanPreference("skip_commentary_tracks", true)
+		var subtitlesOffsetPosition = floatPreference("subtitles_offset_position", 0.08f)
 
 		/**
 		 * Show screensaver in app
@@ -301,7 +212,7 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		/**
 		 * Age rating used to filter items in the screensaver. Use -1 to disable (omits parameter from requests).
 		 */
-		var screensaverAgeRatingMax = intPreference("screensaver_agerating_max", -1)
+		var screensaverAgeRatingMax = intPreference("screensaver_agerating_max", 13)
 
 		/**
 		 * Whether items shown in the screensaver are required to have an age rating set.
@@ -309,27 +220,12 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		var screensaverAgeRatingRequired = booleanPreference("screensaver_agerating_required", true)
 
 		/**
-		 * Show clock in screensaver
-		 */
-		var screensaverClockEnabled = booleanPreference("screensaver_clock_enabled", true)
-
-		/**
-		 * Show logo in screensaver
-		 */
-		var screensaverLogoEnabled = booleanPreference("screensaver_logo_enabled", true)
-
-		/**
-		 * Sorting method for screensaver content
-		 */
-		var screensaverSortBy = enumPreference("screensaver_sort_by", ScreensaverSortBy.RANDOM)
-
-		/**
 		 * Delay when starting video playback after loading the video player.
 		 */
 		var videoStartDelay = longPreference("video_start_delay", 0)
 
 		/**
-		 * The actions to take for each media segment type. Managed by the [org.jellyfin.androidtv.ui.playback.segment.MediaSegmentRepository].
+		 * The actions to take for each media segment type. Managed by the [MediaSegmentRepository].
 		 */
 		var mediaSegmentActions = stringPreference(
 			key = "media_segment_actions",
@@ -340,37 +236,29 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		)
 
 		/**
-		 * Duration for the skip button visibility timer.
-		 */
-		var skipDuration = enumPreference("skip_duration", SkipDuration.DEFAULT_8_SECONDS)
-
-		/**
 		 * Preferred behavior for player aspect ratio (zoom mode).
 		 */
 		var playerZoomMode = enumPreference("player_zoom_mode", ZoomMode.FIT)
 
 		/**
-		 * Enable TrickPlay in legacy player user interface while seeking.
+		 * Enable libass.
 		 */
-		var trickPlayEnabled = booleanPreference("trick_play_enabled", false)
+		var assDirectPlay = booleanPreference("libass_enabled", false)
 
 		/**
-		 * Enable preloading of images for better performance
+		 * Always burn in subtitles when transcoding.
 		 */
-		var preloadImages = booleanPreference("preload_images", true)
+		var subtitlesBurnDuringTranscode = booleanPreference("subtitles_burn_during_transcode", false)
 
 		/**
-		 * Disk cache size in MB for images
-		 * Default: 250mb
+		 * Enable PGS subtitle direct-play.
 		 */
-		var diskCacheSizeMb = intPreference("disk_cache_size_mb", 250)
+		var pgsDirectPlay = booleanPreference("pgs_enabled", true)
 
 		/**
-		 * Custom Sections item limit for home screen
-		 * Default: 10 items
+		 * Enable the use of software-based codecs.
 		 */
-		var genreItemLimit = intPreference("genre_item_limit", 10)
-
+		var softwareCodecsEnabled = booleanPreference("software_codecs_enabled", true)
 	}
 
 	init {
@@ -393,6 +281,19 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 				// Set subtitle text stroke color to black if it was enabled in a previous version
 				val subtitleStrokeSize = it.getInt("subtitles_stroke_size", 0)
 				putLong("subtitles_text_stroke_color", if (subtitleStrokeSize > 0) 0XFF000000L else 0X00FFFFFFL)
+			}
+
+			// v0.19.0 to v0.20.0
+			migration(toVersion = 9) {
+				// Reset subtitle text size as we changed from fractional sizing to absolute sizing
+				remove("subtitles_text_size")
+
+				// Set the BackdropBehavior if it was enabled in a previous version
+				val backdropEnabled = it.getBoolean("pref_show_backdrop", true)
+				putString(
+					"backdrop_behavior",
+					if (backdropEnabled) BackdropBehavior.BACKDROP_WITH_BLUR.name else BackdropBehavior.DISABLED.name
+				)
 			}
 		}
 	}

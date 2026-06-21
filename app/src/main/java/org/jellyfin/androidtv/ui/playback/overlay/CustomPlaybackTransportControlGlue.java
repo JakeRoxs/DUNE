@@ -31,7 +31,6 @@ import org.jellyfin.androidtv.ui.playback.overlay.action.ChannelBarChannelAction
 import org.jellyfin.androidtv.ui.playback.overlay.action.ChapterAction;
 import org.jellyfin.androidtv.ui.playback.overlay.action.ClosedCaptionsAction;
 import org.jellyfin.androidtv.ui.playback.overlay.action.CustomAction;
-import org.jellyfin.androidtv.ui.playback.overlay.action.EpisodesAction;
 import org.jellyfin.androidtv.ui.playback.overlay.action.FastForwardAction;
 import org.jellyfin.androidtv.ui.playback.overlay.action.GuideAction;
 import org.jellyfin.androidtv.ui.playback.overlay.action.PlayPauseAction;
@@ -44,13 +43,11 @@ import org.jellyfin.androidtv.ui.playback.overlay.action.SelectQualityAction;
 import org.jellyfin.androidtv.ui.playback.overlay.action.SkipNextAction;
 import org.jellyfin.androidtv.ui.playback.overlay.action.SkipPreviousAction;
 import org.jellyfin.androidtv.ui.playback.overlay.action.ZoomAction;
-import org.jellyfin.androidtv.ui.playback.overlay.action.StatsAction;
 import org.jellyfin.androidtv.util.DateTimeExtensionsKt;
 import org.koin.java.KoinJavaComponent;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import timber.log.Timber;
 
 public class CustomPlaybackTransportControlGlue extends PlaybackTransportControlGlue<VideoPlayerAdapter> {
 
@@ -65,9 +62,7 @@ public class CustomPlaybackTransportControlGlue extends PlaybackTransportControl
     private SelectQualityAction selectQualityAction;
     private PlaybackSpeedAction playbackSpeedAction;
     private ZoomAction zoomAction;
-    private StatsAction statsAction;
     private ChapterAction chapterAction;
-    private EpisodesAction episodesAction;
 
     // TV actions
     private PreviousLiveTvChannelAction previousLiveTvChannelAction;
@@ -119,7 +114,6 @@ public class CustomPlaybackTransportControlGlue extends PlaybackTransportControl
         selectAudioAction.dismissPopup();
         selectQualityAction.dismissPopup();
         zoomAction.dismissPopup();
-        if (statsAction != null) statsAction.dismissPopup();
 
         super.onDetachedFromHost();
     }
@@ -147,21 +141,11 @@ public class CustomPlaybackTransportControlGlue extends PlaybackTransportControl
 
                     LinearLayout view = (LinearLayout) vh.view;
 
-                    Object bar = view.getChildAt(1);
-                    FrameLayout v;
-                    try {
-                        java.lang.reflect.Method getChildAtMethod = bar.getClass().getMethod("getChildAt", int.class);
-                        v = (FrameLayout) getChildAtMethod.invoke(bar, 0);
+                    PlaybackTransportRowView bar = (PlaybackTransportRowView) view.getChildAt(1);
+                    FrameLayout v = (FrameLayout) bar.getChildAt(0);
+                    mButtonRef = (LinearLayout) v.getChildAt(0);
 
-                        java.lang.reflect.Method getChildAtMethod2 = v.getClass().getMethod("getChildAt", int.class);
-                        mButtonRef = (LinearLayout) getChildAtMethod2.invoke(v, 0);
-
-                        java.lang.reflect.Method removeViewAtMethod = bar.getClass().getMethod("removeViewAt", int.class);
-                        removeViewAtMethod.invoke(bar, 0);
-                    } catch (Exception e) {
-                        Timber.e(e, "Error accessing playback controls via reflection");
-                        return vh;
-                    }
+                    bar.removeViewAt(0);
                     RelativeLayout rl = new RelativeLayout(context);
                     RelativeLayout.LayoutParams rlp = new RelativeLayout.LayoutParams(
                             RelativeLayout.LayoutParams.WRAP_CONTENT,
@@ -174,12 +158,7 @@ public class CustomPlaybackTransportControlGlue extends PlaybackTransportControl
                     rlp2.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
                     rlp2.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
                     rl.addView(mEndsText, rlp2);
-                    try {
-                        java.lang.reflect.Method addViewMethod = bar.getClass().getMethod("addView", View.class, int.class, ViewGroup.LayoutParams.class);
-                        addViewMethod.invoke(bar, rl, 0, rlp);
-                    } catch (Exception e) {
-                        Timber.e(e, "Error adding view via reflection");
-                    }
+                    bar.addView(rl, 0, rlp);
                 }
 
                 return vh;
@@ -223,12 +202,8 @@ public class CustomPlaybackTransportControlGlue extends PlaybackTransportControl
         playbackSpeedAction.setLabels(new String[]{context.getString(R.string.lbl_playback_speed)});
         zoomAction = new ZoomAction(context, this);
         zoomAction.setLabels(new String[]{context.getString(R.string.lbl_zoom)});
-        statsAction = new StatsAction(context, this);
-        statsAction.setLabels(new String[]{"Stats"});
         chapterAction = new ChapterAction(context, this);
         chapterAction.setLabels(new String[]{context.getString(R.string.lbl_chapters)});
-        episodesAction = new EpisodesAction(context, this);
-        episodesAction.setLabels(new String[]{context.getString(R.string.lbl_episodes)});
 
         previousLiveTvChannelAction = new PreviousLiveTvChannelAction(context, this);
         previousLiveTvChannelAction.setLabels(new String[]{context.getString(R.string.lbl_prev_item)});
@@ -276,10 +251,6 @@ public class CustomPlaybackTransportControlGlue extends PlaybackTransportControl
             primaryActionsAdapter.add(selectAudioAction);
         }
 
-        if (playerAdapter.isEpisode()) {
-            primaryActionsAdapter.add(episodesAction);
-        }
-
         if (playerAdapter.isLiveTv()) {
             primaryActionsAdapter.add(channelBarChannelAction);
             primaryActionsAdapter.add(guideAction);
@@ -309,10 +280,9 @@ public class CustomPlaybackTransportControlGlue extends PlaybackTransportControl
         if (!playerAdapter.isLiveTv()) {
             secondaryActionsAdapter.add(playbackSpeedAction);
             secondaryActionsAdapter.add(selectQualityAction);
-            secondaryActionsAdapter.add(zoomAction);
-            secondaryActionsAdapter.add(statsAction);
         }
 
+        secondaryActionsAdapter.add(zoomAction);
     }
 
     @Override
@@ -410,10 +380,10 @@ public class CustomPlaybackTransportControlGlue extends PlaybackTransportControl
 
         VideoPlayerAdapter playerAdapter = getPlayerAdapter();
 
-        if (playerAdapter.hasSubs() && keyCode == KoinJavaComponent.<UserPreferences>get(UserPreferences.class).get(UserPreferences.Companion.getShortcutSubtitleTrack())) {
+        if (playerAdapter.hasSubs() && keyCode == KeyEvent.KEYCODE_CAPTIONS) {
             closedCaptionsAction.handleClickAction(playbackController, getPlayerAdapter(), getContext(), v);
         }
-        if (playerAdapter.hasMultiAudio() && keyCode == KoinJavaComponent.<UserPreferences>get(UserPreferences.class).get(UserPreferences.Companion.getShortcutAudioTrack())) {
+        if (playerAdapter.hasMultiAudio() && keyCode == KeyEvent.KEYCODE_MEDIA_AUDIO_TRACK) {
             selectAudioAction.handleClickAction(playbackController, getPlayerAdapter(), getContext(), v);
         }
         return super.onKey(v, keyCode, event);

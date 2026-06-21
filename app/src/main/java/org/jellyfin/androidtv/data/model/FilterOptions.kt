@@ -9,10 +9,7 @@ class FilterOptions {
 
 	val filters: Set<ItemFilter>
 		get() = buildSet {
-			if (isFavoriteOnly) {
-				add(ItemFilter.IS_FAVORITE)
-			} else if (isUnwatchedOnly) {
-				add(ItemFilter.IS_UNPLAYED)
-			}
+			if (isFavoriteOnly) add(ItemFilter.IS_FAVORITE)
+			if (isUnwatchedOnly) add(ItemFilter.IS_UNPLAYED)
 		}
 }

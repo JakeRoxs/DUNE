@@ -47,7 +47,7 @@ fun <T : Any> ItemRowAdapter.setItems(
 	items: Collection<T>,
 	transform: (T, Int) -> BaseRowItem?,
 ) {
-	Timber.d("Creating items from $itemsLoaded existing and ${items.size} new, adapter size is ${size()}")
+	Timber.i("Creating items from $itemsLoaded existing and ${items.size} new, adapter size is ${size()}")
 
 	val allItems = buildList {
 		// Add current items before loaded items
@@ -72,9 +72,6 @@ fun <T : Any> ItemRowAdapter.setItems(
 }
 
 fun ItemRowAdapter.retrieveResumeItems(api: ApiClient, query: GetResumeItemsRequest) {
-	if (this.isScrolling) {
-		return
-	}
 	ProcessLifecycleOwner.get().lifecycleScope.launch {
 		runCatching {
 			val response = withContext(Dispatchers.IO) {
@@ -101,9 +98,6 @@ fun ItemRowAdapter.retrieveResumeItems(api: ApiClient, query: GetResumeItemsRequ
 }
 
 fun ItemRowAdapter.retrieveNextUpItems(api: ApiClient, query: GetNextUpRequest) {
-	if (this.isScrolling) {
-		return
-	}
 	ProcessLifecycleOwner.get().lifecycleScope.launch {
 		runCatching {
 			val response = withContext(Dispatchers.IO) {
@@ -163,9 +157,6 @@ fun ItemRowAdapter.retrieveNextUpItems(api: ApiClient, query: GetNextUpRequest) 
 }
 
 fun ItemRowAdapter.retrieveLatestMedia(api: ApiClient, query: GetLatestMediaRequest) {
-	if (this.isScrolling) {
-		return
-	}
 	ProcessLifecycleOwner.get().lifecycleScope.launch {
 		runCatching {
 			val response = withContext(Dispatchers.IO) {
@@ -194,9 +185,6 @@ fun ItemRowAdapter.retrieveLatestMedia(api: ApiClient, query: GetLatestMediaRequ
 }
 
 fun ItemRowAdapter.retrieveSpecialFeatures(api: ApiClient, query: GetSpecialsRequest) {
-	if (this.isScrolling) {
-		return
-	}
 	ProcessLifecycleOwner.get().lifecycleScope.launch {
 		runCatching {
 			val response = withContext(Dispatchers.IO) {
@@ -247,11 +235,10 @@ fun ItemRowAdapter.retrieveUserViews(api: ApiClient, userViewsRepository: UserVi
 
 			val filteredItems = response.items
 				.filter { userViewsRepository.isSupported(it.collectionType) }
-				.map { it.copy(displayPreferencesId = it.id.toString()) }
 
 			setItems(
 				items = filteredItems,
-				transform = { item, _ -> BaseItemDtoBaseRowItem(item) }
+				transform = { item, _ -> BaseItemDtoBaseRowItem(item, staticHeight = true) }
 			)
 
 			if (filteredItems.isEmpty()) removeRow()
@@ -303,9 +290,6 @@ fun ItemRowAdapter.retrieveUpcomingEpisodes(api: ApiClient, query: GetUpcomingEp
 }
 
 fun ItemRowAdapter.retrieveSimilarItems(api: ApiClient, query: GetSimilarItemsRequest) {
-	if (this.isScrolling) {
-		return
-	}
 	ProcessLifecycleOwner.get().lifecycleScope.launch {
 		runCatching {
 			val response = withContext(Dispatchers.IO) {
@@ -326,9 +310,6 @@ fun ItemRowAdapter.retrieveSimilarItems(api: ApiClient, query: GetSimilarItemsRe
 }
 
 fun ItemRowAdapter.retrieveTrailers(api: ApiClient, query: GetTrailersRequest) {
-	if (this.isScrolling) {
-		return
-	}
 	ProcessLifecycleOwner.get().lifecycleScope.launch {
 		runCatching {
 			val response = withContext(Dispatchers.IO) {
@@ -583,9 +564,6 @@ fun ItemRowAdapter.retrieveItems(
 	startIndex: Int,
 	batchSize: Int
 ) {
-	if (this.isScrolling && startIndex == 0) {
-		return
-	}
 	ProcessLifecycleOwner.get().lifecycleScope.launch {
 		runCatching {
 			val response = withContext(Dispatchers.IO) {
@@ -712,19 +690,6 @@ fun setItemsStartLetter(
 	startLetter: String?,
 ) = request.copy(
 	nameStartsWith = startLetter,
-)
-
-/**
- * Updates the genres filter in a GetItemsRequest
- * @param request The original request
- * @param genres The new genres to filter by, or null to clear the filter
- * @return A new GetItemsRequest with the updated genres
- */
-fun setItemsGenres(
-    request: GetItemsRequest,
-    genres: Collection<String>?
-) = request.copy(
-    genres = genres?.toList()
 )
 
 @JvmOverloads

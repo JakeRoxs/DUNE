@@ -1,38 +1,32 @@
 <merge xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
-
-    <androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:tools="http://schemas.android.com/tools">
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent">
 
         <TextView
             android:id="@+id/title_text"
+            style="@style/Widget.Leanback.Title.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="60dp"
+            android:layout_gravity="center_vertical|end"
+            android:layout_toStartOf="@id/toolbar_actions" />
+
+        <androidx.leanback.widget.SearchOrbView
+            android:id="@+id/title_orb"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            android:layout_gravity="center_vertical|start"
+            android:transitionGroup="true"
+            android:visibility="invisible"
+            tools:ignore="UnusedAttribute" />
 
-        <LinearLayout
-            android:id="@+id/buttons_group"
+        <org.jellyfin.androidtv.ui.ClockUserView
+            android:id="@+id/toolbar_actions"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <androidx.leanback.widget.SearchOrbView
-                android:id="@+id/title_orb"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:visibility="gone" />
-
-            <org.jellyfin.androidtv.ui.ClockUserView
-                android:id="@+id/toolbar_actions"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            android:layout_alignTop="@id/title_text"
+            android:layout_alignParentEnd="true"
+            android:layout_marginStart="16dp" />
+    </RelativeLayout>
 </merge>

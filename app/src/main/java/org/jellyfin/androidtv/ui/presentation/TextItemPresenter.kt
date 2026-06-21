@@ -26,18 +26,9 @@ class TextItemPresenter : Presenter() {
 		return ViewHolder(view)
 	}
 
-    // This version is called by the framework with payloads
-    override fun onBindViewHolder(viewHolder: ViewHolder, item: Any, payloads: MutableList<Any>) {
-        onBindViewHolder(viewHolder, item)
-    }
+	override fun onBindViewHolder(viewHolder: ViewHolder, item: Any?) {
+		(viewHolder.view as? TextView)?.text = item.toString()
+	}
 
-    // Main implementation that handles binding
-    override fun onBindViewHolder(viewHolder: ViewHolder, item: Any?) {
-        (viewHolder.view as? TextView)?.text = item?.toString() ?: ""
-    }
-
-    @Suppress("UNUSED_PARAMETER")
-    override fun onUnbindViewHolder(viewHolder: ViewHolder) {
-        // No cleanup needed
-    }
+	override fun onUnbindViewHolder(viewHolder: ViewHolder) = Unit
 }

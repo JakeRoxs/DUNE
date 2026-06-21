@@ -1,11 +1,8 @@
 package org.jellyfin.androidtv.ui.playback;
 
+import static org.koin.java.KoinJavaComponent.get;
 import static org.koin.java.KoinJavaComponent.inject;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Handler;
@@ -22,11 +19,11 @@ import org.jellyfin.androidtv.data.compat.VideoOptions;
 import org.jellyfin.androidtv.data.model.DataRefreshService;
 import org.jellyfin.androidtv.preference.UserPreferences;
 import org.jellyfin.androidtv.preference.UserSettingPreferences;
-import org.jellyfin.androidtv.preference.constant.AudioLanguage;
 import org.jellyfin.androidtv.preference.constant.NextUpBehavior;
 import org.jellyfin.androidtv.preference.constant.RefreshRateSwitchingBehavior;
-import org.jellyfin.androidtv.preference.constant.SubtitleLanguage;
+import org.jellyfin.androidtv.preference.constant.StillWatchingBehavior;
 import org.jellyfin.androidtv.preference.constant.ZoomMode;
+import org.jellyfin.androidtv.ui.InteractionTrackerViewModel;
 import org.jellyfin.androidtv.ui.livetv.TvManager;
 import org.jellyfin.androidtv.util.TimeUtils;
 import org.jellyfin.androidtv.util.Utils;
@@ -34,6 +31,8 @@ import org.jellyfin.androidtv.util.apiclient.ReportingHelper;
 import org.jellyfin.androidtv.util.apiclient.Response;
 import org.jellyfin.androidtv.util.profile.DeviceProfileKt;
 import org.jellyfin.androidtv.util.sdk.compat.JavaCompat;
+import org.jellyfin.sdk.api.client.ApiClient;
+import org.jellyfin.sdk.model.ServerVersion;
 import org.jellyfin.sdk.model.api.BaseItemDto;
 import org.jellyfin.sdk.model.api.BaseItemKind;
 import org.jellyfin.sdk.model.api.DeviceProfile;
@@ -46,6 +45,7 @@ import org.jellyfin.sdk.model.api.SubtitleDeliveryMethod;
 import org.jellyfin.sdk.model.serializer.UUIDSerializerKt;
 import org.koin.java.KoinJavaComponent;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -53,8 +53,6 @@ import java.util.List;
 
 import kotlin.Lazy;
 import timber.log.Timber;
-
-import java.time.Duration;
 
 public class PlaybackController implements PlaybackControllerNotifiable {
     // Frequency to report playback progress
@@ -65,9 +63,10 @@ public class PlaybackController implements PlaybackControllerNotifiable {
     private Lazy<PlaybackManager> playbackManager = inject(PlaybackManager.class);
     private Lazy<UserPreferences> userPreferences = inject(UserPreferences.class);
     private Lazy<VideoQueueManager> videoQueueManager = inject(VideoQueueManager.class);
-    private Lazy<org.jellyfin.sdk.api.client.ApiClient> api = inject(org.jellyfin.sdk.api.client.ApiClient.class);
+    private Lazy<ApiClient> api = inject(ApiClient.class);
     private Lazy<DataRefreshService> dataRefreshService = inject(DataRefreshService.class);
     private Lazy<ReportingHelper> reportingHelper = inject(ReportingHelper.class);
+    private final Lazy<InteractionTrackerViewModel> lazyInteractionTracker = inject(InteractionTrackerViewModel.class);
 
     List<BaseItemDto> mItems;
     VideoManager mVideoManager;
@@ -77,6 +76,8 @@ public class PlaybackController implements PlaybackControllerNotifiable {
 
     private StreamInfo mCurrentStreamInfo;
 
+    private final InteractionTrackerViewModel interactionTracker;
+
     @Nullable
     private CustomPlaybackOverlayFragment mFragment;
     private Boolean spinnerOff = false;
@@ -84,6 +85,23 @@ public class PlaybackController implements PlaybackControllerNotifiable {
     protected VideoOptions mCurrentOptions;
     private int mDefaultAudioIndex = -1;
     protected boolean burningSubs = false;
+
+    // The server does not update the subtitle delivery method when alwaysBurnInSubtitleWhenTranscoding
+    // is set, so we need to assume subs are burned in when transcoding with the option enabled.
+    protected boolean shouldBurnInSubtitles(PlayMethod playMethod) {
+        return userPreferences.getValue().get(UserPreferences.Companion.getSubtitlesBurnDuringTranscode())
+                && playMethod == PlayMethod.TRANSCODE;
+    }
+
+    private void updateBurningSubs(StreamInfo response) {
+        if (response.getSubtitleDeliveryMethod() == SubtitleDeliveryMethod.DROP) {
+            burningSubs = false;
+            return;
+        }
+
+        burningSubs = response.getSubtitleDeliveryMethod() == SubtitleDeliveryMethod.ENCODE
+                || shouldBurnInSubtitles(response.getPlayMethod());
+    }
     private float mRequestedPlaybackSpeed = -1.0f;
 
     private Runnable mReportLoop;
@@ -120,9 +138,12 @@ public class PlaybackController implements PlaybackControllerNotifiable {
         mFragment = fragment;
         mHandler = new Handler();
 
+        interactionTracker = lazyInteractionTracker.getValue();
+
         refreshRateSwitchingBehavior = userPreferences.getValue().get(UserPreferences.Companion.getRefreshRateSwitchingBehavior());
         if (refreshRateSwitchingBehavior != RefreshRateSwitchingBehavior.DISABLED)
             getDisplayModes();
+
     }
 
     public boolean hasFragment() {
@@ -171,19 +192,19 @@ public class PlaybackController implements PlaybackControllerNotifiable {
         return mVideoManager != null && mVideoManager.isInitialized();
     }
 
-    public org.jellyfin.sdk.model.api.MediaSourceInfo getCurrentMediaSource() {
+    public MediaSourceInfo getCurrentMediaSource() {
         if (mCurrentStreamInfo != null && mCurrentStreamInfo.getMediaSource() != null) {
             return mCurrentStreamInfo.getMediaSource();
         } else {
             BaseItemDto item = getCurrentlyPlayingItem();
-            List<org.jellyfin.sdk.model.api.MediaSourceInfo> mediaSources = item.getMediaSources();
+            List<MediaSourceInfo> mediaSources = item.getMediaSources();
 
             if (mediaSources == null || mediaSources.isEmpty()) {
                 return null;
             } else {
                 // Prefer the media source with the same id as the item
                 for (MediaSourceInfo mediaSource : mediaSources) {
-                    if (UUIDSerializerKt.toUUIDOrNull(mediaSource.getId()).equals(item.getId())) {
+                    if (item.getId().equals(UUIDSerializerKt.toUUIDOrNull(mediaSource.getId()))) {
                         return mediaSource;
                     }
                 }
@@ -235,7 +256,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
     public void playerErrorEncountered() {
         // reset the retry count if it's been more than 30s since previous error
         if (playbackRetries > 0 && Instant.now().toEpochMilli() - lastPlaybackError > 30000) {
-            Timber.d("playback stabilized - retry count reset to 0 from %s", playbackRetries);
+            Timber.i("playback stabilized - retry count reset to 0 from %s", playbackRetries);
             playbackRetries = 0;
         }
 
@@ -257,7 +278,6 @@ public class PlaybackController implements PlaybackControllerNotifiable {
         }
     }
 
-    @TargetApi(23)
     private void getDisplayModes() {
         if (mFragment == null)
             return;
@@ -265,14 +285,14 @@ public class PlaybackController implements PlaybackControllerNotifiable {
         mDisplayModes = display.getSupportedModes();
         Timber.i("** Available display refresh rates:");
         for (Display.Mode mDisplayMode : mDisplayModes) {
-            Timber.d("display mode %s - %dx%d@%f", mDisplayMode.getModeId(), mDisplayMode.getPhysicalWidth(), mDisplayMode.getPhysicalHeight(), mDisplayMode.getRefreshRate());
+            Timber.i("display mode %s - %dx%d@%f", mDisplayMode.getModeId(), mDisplayMode.getPhysicalWidth(), mDisplayMode.getPhysicalHeight(), mDisplayMode.getRefreshRate());
         }
     }
 
-    @TargetApi(23)
     private Display.Mode findBestDisplayMode(MediaStream videoStream) {
         if (mFragment == null || mDisplayModes == null || videoStream.getRealFrameRate() == null)
             return null;
+
 
         int curWeight = 0;
         Display.Mode bestMode = null;
@@ -295,13 +315,17 @@ public class PlaybackController implements PlaybackControllerNotifiable {
             if (rate != sourceRate && rate != sourceRate * 2 && rate != Math.round(sourceRate * 2.5)) // Skip inappropriate rates
                 continue;
 
-            Timber.d("qualifying display mode: %s - %dx%d@%f", mode.getModeId(), mode.getPhysicalWidth(), mode.getPhysicalHeight(), mode.getRefreshRate());
+            Timber.i("qualifying display mode: %s - %dx%d@%f", mode.getModeId(), mode.getPhysicalWidth(), mode.getPhysicalHeight(), mode.getRefreshRate());
 
             // if scaling on-device, keep native resolution modes at diff 0 (best score)
             // for other resolutions when scaling on device, or if scaling on tv, score based on distance from media resolution
+
+            // use -1 as the default so, with SCALE_ON_DEVICE, a mode at native resolution will rank higher than
+            // a mode with equal refresh rate and the same resolution as the media
             int resolutionDifference = -1;
             if ((refreshRateSwitchingBehavior == RefreshRateSwitchingBehavior.SCALE_ON_DEVICE &&
                     !(mode.getPhysicalWidth() == defaultMode.getPhysicalWidth() && mode.getPhysicalHeight() == defaultMode.getPhysicalHeight())) ||
+
                     refreshRateSwitchingBehavior == RefreshRateSwitchingBehavior.SCALE_ON_TV) {
 
                 resolutionDifference = Math.abs(mode.getPhysicalWidth() - videoStream.getWidth());
@@ -321,8 +345,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
         return bestMode;
     }
 
-    @TargetApi(23)
-    private void setRefreshRate(org.jellyfin.sdk.model.api.MediaStream videoStream) {
+    private void setRefreshRate(MediaStream videoStream) {
         if (videoStream == null || mFragment == null) {
             Timber.e("Null video stream attempting to set refresh rate");
             return;
@@ -347,6 +370,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
         }
     }
 
+    // central place to update mCurrentPosition
     private void refreshCurrentPosition() {
         long newPos = -1;
 
@@ -383,13 +407,6 @@ public class PlaybackController implements PlaybackControllerNotifiable {
 
     protected void play(long position, @Nullable Integer forcedSubtitleIndex) {
         String forcedAudioLanguage = videoQueueManager.getValue().getLastPlayedAudioLanguageIsoCode();
-        // Use default audio language from preferences if no forced language is set
-        if (forcedAudioLanguage == null || forcedAudioLanguage.isEmpty()) {
-            AudioLanguage defaultAudioLang = userPreferences.getValue().get(UserPreferences.Companion.getDefaultAudioLanguage());
-            if (defaultAudioLang != null && defaultAudioLang != AudioLanguage.NONE) {
-                forcedAudioLanguage = defaultAudioLang.getCode();
-            }
-        }
         Timber.i("Play called from state: %s with pos: %d, sub index: %d and forced audio: %s", mPlaybackState, position, forcedSubtitleIndex, forcedAudioLanguage);
 
         if (mFragment == null) {
@@ -412,7 +429,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
                 }
                 // just resume
                 mVideoManager.play();
-                mPlaybackState = PlaybackState.PLAYING; //won't get another onprepared call
+                mPlaybackState = PlaybackState.PLAYING; // won't get another onPrepared call
                 mFragment.setFadingEnabled(true);
                 startReportLoop();
                 break;
@@ -431,7 +448,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
                 BaseItemDto item = getCurrentlyPlayingItem();
 
                 if (item == null) {
-                    Timber.d("item is null - aborting play");
+                    Timber.w("item is null - aborting play");
                     Utils.showToast(mFragment.getContext(), mFragment.getString(R.string.msg_cannot_play));
                     mFragment.closePlayer();
                     return;
@@ -498,13 +515,13 @@ public class PlaybackController implements PlaybackControllerNotifiable {
     private VideoOptions buildExoPlayerOptions(
             @Nullable Integer forcedSubtitleIndex,
             @Nullable String forcedAudioLanguage,
-            BaseItemDto item
-    ) {
+            BaseItemDto item) {
         VideoOptions internalOptions = new VideoOptions();
         internalOptions.setItemId(item.getId());
         internalOptions.setMediaSources(item.getMediaSources());
-        if (playbackRetries > 0 || (isLiveTv && !directStreamLiveTv)) internalOptions.setEnableDirectStream(false);
-        if (playbackRetries > 1) internalOptions.setEnableDirectPlay(false);
+        internalOptions.setAlwaysBurnInSubtitleWhenTranscoding(userPreferences.getValue().get(UserPreferences.Companion.getSubtitlesBurnDuringTranscode()));
+        if (playbackRetries > 0 || (isLiveTv && !directStreamLiveTv)) internalOptions.setEnableDirectPlay(false);
+        if (playbackRetries > 1) internalOptions.setEnableDirectStream(false);
         if (mCurrentOptions != null) {
             internalOptions.setSubtitleStreamIndex(mCurrentOptions.getSubtitleStreamIndex());
             internalOptions.setAudioStreamIndex(mCurrentOptions.getAudioStreamIndex());
@@ -513,129 +530,22 @@ public class PlaybackController implements PlaybackControllerNotifiable {
             internalOptions.setSubtitleStreamIndex(forcedSubtitleIndex);
         }
         MediaSourceInfo currentMediaSource = getCurrentMediaSource();
-        if (currentMediaSource == null) {
-            Timber.w("No current media source available");
-            return internalOptions;
+        if (forcedAudioLanguage != null) {
+            // find the first audio stream with the requested language
+            for (MediaStream stream : currentMediaSource.getMediaStreams()) {
+                if (stream.getType() == MediaStreamType.AUDIO && forcedAudioLanguage.equals(stream.getLanguage())) {
+                    internalOptions.setAudioStreamIndex(stream.getIndex());
+                    break;
+                }
+            }
         }
-
-        if (!isLiveTv) {
+        if (!isLiveTv && currentMediaSource != null) {
             internalOptions.setMediaSourceId(currentMediaSource.getId());
         }
-
-        if (forcedAudioLanguage != null && !forcedAudioLanguage.trim().isEmpty()) {
-            String normalizedForcedLang = forcedAudioLanguage.trim().toLowerCase();
-            Timber.d("Looking for audio track matching language: %s", normalizedForcedLang);
-            boolean foundMatch = false;
-
-            // Log all available audio tracks for debugging
-            Timber.d("Available audio tracks:");
-            for (MediaStream stream : currentMediaSource.getMediaStreams()) {
-                if (stream.getType() == MediaStreamType.AUDIO) {
-                    Timber.d("Track %d: lang=%s, codec=%s, title=%s, channels=%d, sampleRate=%d, path=%s",
-                            stream.getIndex(),
-                            stream.getLanguage(),
-                            stream.getCodec(),
-                            stream.getDisplayTitle(),
-                            stream.getChannels() != null ? stream.getChannels() : -1,
-                            stream.getSampleRate() != null ? stream.getSampleRate() : -1,
-                            stream.getPath()
-                    );
-                }
-            }
-
-            // Map of common language codes (2-letter to 3-letter and vice versa)
-            Map<String, String> languageCodeMap = new HashMap<>();
-            // Spanish
-            languageCodeMap.put("es", "spa");
-            languageCodeMap.put("spa", "es");
-            // English
-            languageCodeMap.put("en", "eng");
-            languageCodeMap.put("eng", "en");
-            // German
-            languageCodeMap.put("de", "ger");
-            languageCodeMap.put("ger", "de");
-            // Add more language codes as needed
-
-            // Try different matching strategies
-            for (MediaStream stream : currentMediaSource.getMediaStreams()) {
-                if (stream.getType() != MediaStreamType.AUDIO || stream.getLanguage() == null) {
-                    continue;
-                }
-                
-                if (userPreferences.getValue().get(UserPreferences.Companion.getSkipCommentaryTracks())) {
-                    String displayTitle = stream.getDisplayTitle();
-                    if (displayTitle != null && displayTitle.toLowerCase().contains("commentary")) {
-                        Timber.d("Skipping commentary track: %s (index %d)", displayTitle, stream.getIndex());
-                        continue;
-                    }
-                }
-
-                String streamLang = stream.getLanguage().toLowerCase();
-
-                // 1. Try exact match (case insensitive)
-                if (streamLang.equals(normalizedForcedLang)) {
-                    Timber.d("Found exact language match: %s -> %s (index %d)",
-                            normalizedForcedLang, streamLang, stream.getIndex());
-                    internalOptions.setAudioStreamIndex(stream.getIndex());
-                    return internalOptions;
-                }
-
-                // 2. Try mapped language codes
-                if (languageCodeMap.containsKey(normalizedForcedLang) &&
-                        languageCodeMap.get(normalizedForcedLang).equals(streamLang)) {
-                    Timber.d("Found mapped language match: %s -> %s (index %d)",
-                            normalizedForcedLang, streamLang, stream.getIndex());
-                    internalOptions.setAudioStreamIndex(stream.getIndex());
-                    foundMatch = true;
-                    // Don't break, keep looking for a better match
-                }
-
-                // 3. Try matching ISO 639-1 (2-letter) to ISO 639-2/T (3-letter) codes and vice versa
-                if ((normalizedForcedLang.length() == 2 && streamLang.startsWith(normalizedForcedLang)) ||
-                        (normalizedForcedLang.length() == 3 && streamLang.length() >= 2 &&
-                                normalizedForcedLang.startsWith(streamLang.substring(0, 2)))) {
-                    Timber.d("Found language code match: %s -> %s (index %d)",
-                            normalizedForcedLang, streamLang, stream.getIndex());
-                    internalOptions.setAudioStreamIndex(stream.getIndex());
-                    foundMatch = true;
-                    // Don't break, keep looking for a better match
-                }
-
-                // 4. Try matching display title as a last resort
-                if (!foundMatch && stream.getDisplayTitle() != null) {
-                    String displayTitle = stream.getDisplayTitle().toLowerCase();
-                    if (displayTitle.contains(normalizedForcedLang) ||
-                            (languageCodeMap.containsKey(normalizedForcedLang) &&
-                                    displayTitle.contains(languageCodeMap.get(normalizedForcedLang)))) {
-                        Timber.d("Found match in display title: %s in %s (index %d)",
-                                normalizedForcedLang, displayTitle, stream.getIndex());
-                        internalOptions.setAudioStreamIndex(stream.getIndex());
-                        foundMatch = true;
-                        // Don't break, keep looking for a better match
-                    }
-                }
-            }
-
-            // Log available audio tracks if no match found
-            if (!foundMatch) {
-                Timber.w("No matching audio track found for language: %s. Available audio tracks:", forcedAudioLanguage);
-                for (MediaStream stream : currentMediaSource.getMediaStreams()) {
-                    if (stream.getType() == MediaStreamType.AUDIO) {
-                        Timber.w("- Index: %d, Language: %s, DisplayTitle: %s, Codec: %s, Channels: %d, SampleRate: %d",
-                                stream.getIndex(),
-                                stream.getLanguage() != null ? stream.getLanguage() : "[null]",
-                                stream.getDisplayTitle() != null ? stream.getDisplayTitle() : "[null]",
-                                stream.getCodec() != null ? stream.getCodec() : "[null]",
-                                stream.getChannels() != null ? stream.getChannels() : -1,
-                                stream.getSampleRate() != null ? stream.getSampleRate() : -1);
-                    }
-                }
-            }
-        }
-
         DeviceProfile internalProfile = DeviceProfileKt.createDeviceProfile(
+                mFragment.getContext(),
                 userPreferences.getValue(),
-                !internalOptions.getEnableDirectStream()
+                get(ServerVersion.class)
         );
         internalOptions.setProfile(internalProfile);
         return internalOptions;
@@ -647,9 +557,10 @@ public class PlaybackController implements PlaybackControllerNotifiable {
             TvManager.setLastLiveTvChannel(item.getId());
             //internal/exo player
             Timber.i("Using internal player for Live TV");
-            playbackManager.getValue().getVideoStreamInfo(mFragment, internalOptions, position * 10000, new Response<StreamInfo>() {
+            playbackManager.getValue().getVideoStreamInfo(mFragment, internalOptions, position * 10000, new Response<StreamInfo>(mFragment.getLifecycle()) {
                 @Override
                 public void onResponse(StreamInfo response) {
+                    if (!isActive()) return;
                     if (mVideoManager == null)
                         return;
                     mCurrentOptions = internalOptions;
@@ -658,23 +569,26 @@ public class PlaybackController implements PlaybackControllerNotifiable {
 
                 @Override
                 public void onError(Exception exception) {
+                    if (!isActive()) return;
                     handlePlaybackInfoError(exception);
                 }
             });
         } else {
-            playbackManager.getValue().getVideoStreamInfo(mFragment, internalOptions, position * 10000, new Response<StreamInfo>() {
+            playbackManager.getValue().getVideoStreamInfo(mFragment, internalOptions, position * 10000, new Response<StreamInfo>(mFragment.getLifecycle()) {
                 @Override
                 public void onResponse(StreamInfo internalResponse) {
+                    if (!isActive()) return;
                     Timber.i("Internal player would %s", internalResponse.getPlayMethod().equals(PlayMethod.TRANSCODE) ? "transcode" : "direct stream");
                     if (mVideoManager == null)
                         return;
                     mCurrentOptions = internalOptions;
-                    if (internalOptions.getSubtitleStreamIndex() == null) burningSubs = internalResponse.getSubtitleDeliveryMethod() == SubtitleDeliveryMethod.ENCODE;
+                    updateBurningSubs(internalResponse);
                     startItem(item, position, internalResponse);
                 }
 
                 @Override
                 public void onError(Exception exception) {
+                    if (!isActive()) return;
                     Timber.e(exception, "Unable to get stream info for internal player");
                     if (mVideoManager == null)
                         return;
@@ -705,24 +619,13 @@ public class PlaybackController implements PlaybackControllerNotifiable {
         if (mFragment != null) mFragment.closePlayer();
     }
 
-    private int mLastIndex = -1;
-
     private void startItem(BaseItemDto item, long position, StreamInfo response) {
-        if (mVideoManager == null) {
-            Timber.w("Video manager is null, can't start item");
-            return;
-        }
-
-        if (mCurrentIndex != mLastIndex) {
-            clearPlaybackSessionOptions();
-            mCurrentOptions.setAudioStreamIndex(null);
-            mLastIndex = mCurrentIndex;
-        }
-
         if (!hasInitializedVideoManager() || !hasFragment()) {
-            Timber.d("Error - attempting to play without:%s%s", hasInitializedVideoManager() ? "" : " [videoManager]", hasFragment() ? "" : " [overlay fragment]");
+            Timber.w("Error - attempting to play without:%s%s", hasInitializedVideoManager() ? "" : " [videoManager]", hasFragment() ? "" : " [overlay fragment]");
             return;
         }
+
+        mCurrentOptions.setAudioStreamIndex(null); // reset audio stream index to allow auto selection on new item
 
         mStartPosition = position;
         mCurrentStreamInfo = response;
@@ -740,26 +643,30 @@ public class PlaybackController implements PlaybackControllerNotifiable {
             return;
         }
 
-        // Get subtitle info and try to find a matching track based on user preferences
-        MediaSourceInfo mediaSource = response.getMediaSource();
-        Integer preferredSubtitleIndex = findPreferredSubtitleTrack(mediaSource);
-        mCurrentOptions.setSubtitleStreamIndex(preferredSubtitleIndex);
-        setDefaultAudioIndex(response);
-
-        // Save the selected audio language for the next episode
-        if (mCurrentOptions.getAudioStreamIndex() != null) {
-            MediaSourceInfo currentMediaSource = getCurrentMediaSource();
-            if (currentMediaSource != null) {
-                for (MediaStream stream : currentMediaSource.getMediaStreams()) {
-                    if (stream.getType() == MediaStreamType.AUDIO && stream.getIndex() == mCurrentOptions.getAudioStreamIndex()) {
-                        videoQueueManager.getValue().setLastPlayedAudioLanguageIsoCode(stream.getLanguage());
+        // get subtitle info - prefer saved language preference over server default
+        String lastSubtitleLanguage = videoQueueManager.getValue().getLastPlayedSubtitleLanguageIsoCode();
+        if (lastSubtitleLanguage != null) {
+            if (lastSubtitleLanguage.isEmpty()) {
+                // User explicitly disabled subtitles
+                mCurrentOptions.setSubtitleStreamIndex(null);
+            } else if (response.getMediaSource().getMediaStreams() != null) {
+                // Find subtitle stream matching saved language
+                Integer matchingIndex = null;
+                for (MediaStream stream : response.getMediaSource().getMediaStreams()) {
+                    if (stream.getType() == MediaStreamType.SUBTITLE && lastSubtitleLanguage.equals(stream.getLanguage())) {
+                        matchingIndex = stream.getIndex();
                         break;
                     }
                 }
+                mCurrentOptions.setSubtitleStreamIndex(matchingIndex);
             }
+        } else {
+            // No saved preference, use server default
+            mCurrentOptions.setSubtitleStreamIndex(response.getMediaSource().getDefaultSubtitleStreamIndex());
         }
-        Timber.d("default audio index set to %s remote default %s", mDefaultAudioIndex, response.getMediaSource().getDefaultAudioStreamIndex());
-        Timber.d("default sub index set to %s remote default %s", mCurrentOptions.getSubtitleStreamIndex(), response.getMediaSource().getDefaultSubtitleStreamIndex());
+        setDefaultAudioIndex(response);
+        Timber.i("default audio index set to %s remote default %s", mDefaultAudioIndex, response.getMediaSource().getDefaultAudioStreamIndex());
+        Timber.i("default sub index set to %s remote default %s", mCurrentOptions.getSubtitleStreamIndex(), response.getMediaSource().getDefaultSubtitleStreamIndex());
 
         Long mbPos = position * 10000;
 
@@ -823,7 +730,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
         } else if (isTranscoding() && getCurrentMediaSource().getDefaultAudioStreamIndex() != null) {
             currIndex = getCurrentMediaSource().getDefaultAudioStreamIndex();
         } else if (hasInitializedVideoManager() && !isTranscoding()) {
-            currIndex = mVideoManager.getExoPlayerTrack(org.jellyfin.sdk.model.api.MediaStreamType.AUDIO, getCurrentlyPlayingItem().getMediaStreams());
+            currIndex = mVideoManager.getExoPlayerTrack(MediaStreamType.AUDIO, getCurrentlyPlayingItem().getMediaStreams());
         }
         return currIndex;
     }
@@ -833,11 +740,30 @@ public class PlaybackController implements PlaybackControllerNotifiable {
             return null;
 
         boolean videoFound = false;
-        for (org.jellyfin.sdk.model.api.MediaStream track : info.getMediaStreams()) {
-            if (track.getType() == org.jellyfin.sdk.model.api.MediaStreamType.VIDEO) {
+        for (MediaStream track : info.getMediaStreams()) {
+            if (track.getType() == MediaStreamType.VIDEO) {
                 videoFound = true;
             } else {
-                if (videoFound && track.getType() == org.jellyfin.sdk.model.api.MediaStreamType.AUDIO)
+                if (videoFound && track.getType() == MediaStreamType.AUDIO)
+                    return track.getIndex();
+            }
+        }
+        return null;
+    }
+
+    private Integer lastChosenLanguageAudioTrack(MediaSourceInfo info) {
+        if (info == null)
+            return null;
+
+        boolean videoFound = false;
+        for (MediaStream track : info.getMediaStreams()) {
+            if (track.getType() == MediaStreamType.VIDEO) {
+                videoFound = true;
+            } else {
+                if (videoFound
+                    && track.getType() == MediaStreamType.AUDIO
+                    && (track.getLanguage() != null && track.getLanguage().equals(videoQueueManager.getValue().getLastPlayedAudioLanguageIsoCode()))
+                )
                     return track.getIndex();
             }
         }
@@ -848,73 +774,46 @@ public class PlaybackController implements PlaybackControllerNotifiable {
         if (mDefaultAudioIndex != -1)
             return;
 
+        Integer lastChosenLanguage = lastChosenLanguageAudioTrack(info.getMediaSource());
         Integer remoteDefault = info.getMediaSource().getDefaultAudioStreamIndex();
         Integer bestGuess = bestGuessAudioTrack(info.getMediaSource());
 
-        if (remoteDefault != null)
+        if (lastChosenLanguage != null)
+            mDefaultAudioIndex = lastChosenLanguage;
+        else if (remoteDefault != null)
             mDefaultAudioIndex = remoteDefault;
         else if (bestGuess != null)
             mDefaultAudioIndex = bestGuess;
         Timber.d("default audio index set to %s", mDefaultAudioIndex);
     }
 
-    private Integer findPreferredSubtitleTrack(MediaSourceInfo mediaSource) {
-        if (mediaSource == null || mediaSource.getMediaStreams() == null) {
-            return null;
-        }
-
-        // Get user's preferred subtitle language
-        SubtitleLanguage preferredLanguage = userPreferences.getValue().get(UserPreferences.Companion.getDefaultSubtitleLanguage());
-        if (preferredLanguage == null || preferredLanguage == SubtitleLanguage.NONE) {
-            return null;
-        }
-
-        String preferredLangCode = preferredLanguage.getCode();
-        if (preferredLangCode == null || preferredLangCode.isEmpty()) {
-            return null;
-        }
-
-        Timber.d("Looking for subtitle track matching language: %s", preferredLangCode);
-
-        // First pass: look for exact language match
-        for (MediaStream stream : mediaSource.getMediaStreams()) {
-            if (stream.getType() == MediaStreamType.SUBTITLE &&
-                    stream.getLanguage() != null &&
-                    stream.getLanguage().equalsIgnoreCase(preferredLangCode)) {
-                Timber.d("Found exact language match for %s at index %d",
-                        preferredLangCode, stream.getIndex());
-                return stream.getIndex();
-            }
-        }
-
-        // Second pass: look for partial language match (e.g., "en" matches "eng")
-        if (preferredLangCode.length() >= 2) {
-            String langPrefix = preferredLangCode.substring(0, 2).toLowerCase();
-            for (MediaStream stream : mediaSource.getMediaStreams()) {
-                if (stream.getType() == MediaStreamType.SUBTITLE &&
-                        stream.getLanguage() != null &&
-                        stream.getLanguage().toLowerCase().startsWith(langPrefix)) {
-                    Timber.d("Found partial language match for %s at index %d",
-                            preferredLangCode, stream.getIndex());
-                    return stream.getIndex();
-                }
-            }
-        }
-
-        // If no match found, return the default subtitle track if available
-        return mediaSource.getDefaultSubtitleStreamIndex();
-    }
-
     public void switchAudioStream(int index) {
         if (!(isPlaying() || isPaused()) || index < 0)
             return;
 
+        MediaSourceInfo currentMediaSource = getCurrentMediaSource();
+        if (currentMediaSource == null
+                || currentMediaSource.getMediaStreams() == null
+                || index >= currentMediaSource.getMediaStreams().size()) {
+            return;
+        }
+
+        String lastAudioIsoCode = videoQueueManager.getValue().getLastPlayedAudioLanguageIsoCode();
+        String currentAudioIsoCode = currentMediaSource.getMediaStreams().get(index).getLanguage();
+
+        if (currentAudioIsoCode != null
+                && (lastAudioIsoCode == null || !lastAudioIsoCode.equals(currentAudioIsoCode))) {
+            videoQueueManager.getValue().setLastPlayedAudioLanguageIsoCode(
+                    currentAudioIsoCode
+            );
+        }
+
         int currAudioIndex = getAudioStreamIndex();
-        Timber.d("trying to switch audio stream from %s to %s", currAudioIndex, index);
+        Timber.i("trying to switch audio stream from %s to %s", currAudioIndex, index);
         if (currAudioIndex == index) {
             Timber.d("skipping setting audio stream, already set to requested index %s", index);
             if (mCurrentOptions.getAudioStreamIndex() == null || mCurrentOptions.getAudioStreamIndex() != index) {
-                Timber.d("setting mCurrentOptions audio stream index from %s to %s", mCurrentOptions.getAudioStreamIndex(), index);
+                Timber.i("setting mCurrentOptions audio stream index from %s to %s", mCurrentOptions.getAudioStreamIndex(), index);
                 mCurrentOptions.setAudioStreamIndex(index);
             }
             return;
@@ -923,12 +822,12 @@ public class PlaybackController implements PlaybackControllerNotifiable {
         // get current timestamp first
         refreshCurrentPosition();
 
-        if (!isTranscoding() && mVideoManager.setExoPlayerTrack(index, MediaStreamType.AUDIO, getCurrentlyPlayingItem().getMediaStreams())) {
-            mCurrentOptions.setMediaSourceId(getCurrentMediaSource().getId());
+        if (!isTranscoding() && mVideoManager.setExoPlayerTrack(index, MediaStreamType.AUDIO, currentMediaSource.getMediaStreams())) {
+            mCurrentOptions.setMediaSourceId(currentMediaSource.getId());
             mCurrentOptions.setAudioStreamIndex(index);
         } else {
             startSpinner();
-            mCurrentOptions.setMediaSourceId(getCurrentMediaSource().getId());
+            mCurrentOptions.setMediaSourceId(currentMediaSource.getId());
             mCurrentOptions.setAudioStreamIndex(index);
             stop();
             playInternal(getCurrentlyPlayingItem(), mCurrentPosition, mCurrentOptions);
@@ -937,7 +836,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
     }
 
     public void pause() {
-        Timber.d("pause called at %s", mCurrentPosition);
+        Timber.i("pause called at %s", mCurrentPosition);
         // if playback is paused and the seekbar is scrubbed, it will call pause even if already paused
         if (mPlaybackState == PlaybackState.PAUSED) {
             Timber.d("already paused, ignoring");
@@ -953,6 +852,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
         stopReportLoop();
         // start a slower report for pause state to keep session alive
         startPauseReportLoop();
+
     }
 
     public void playPause() {
@@ -970,7 +870,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
 
     public void stop() {
         refreshCurrentPosition();
-        Timber.d("stop called at %s", mCurrentPosition);
+        Timber.i("stop called at %s", mCurrentPosition);
         stopReportLoop();
         if (mPlaybackState != PlaybackState.IDLE && mPlaybackState != PlaybackState.UNDEFINED) {
             mPlaybackState = PlaybackState.IDLE;
@@ -993,7 +893,9 @@ public class PlaybackController implements PlaybackControllerNotifiable {
     }
 
     public void endPlayback(Boolean closeActivity) {
-        if (closeActivity && mFragment != null) mFragment.closePlayer();
+        if (closeActivity && mFragment != null) {
+            mFragment.closePlayer();
+        }
         stop();
         if (mVideoManager != null)
             mVideoManager.destroy();
@@ -1026,7 +928,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
             resetPlayerErrors();
             mCurrentIndex++;
             videoQueueManager.getValue().setCurrentMediaPosition(mCurrentIndex);
-            Timber.d("Moving to index: %d out of %d total items.", mCurrentIndex, mItems.size());
+            Timber.i("Moving to index: %d out of %d total items.", mCurrentIndex, mItems.size());
             spinnerOff = false;
             play(0);
         }
@@ -1039,7 +941,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
             resetPlayerErrors();
             mCurrentIndex--;
             videoQueueManager.getValue().setCurrentMediaPosition(mCurrentIndex);
-            Timber.d("Moving to index: %d out of %d total items.", mCurrentIndex, mItems.size());
+            Timber.i("Moving to index: %d out of %d total items.", mCurrentIndex, mItems.size());
             spinnerOff = false;
             play(0);
         }
@@ -1047,12 +949,12 @@ public class PlaybackController implements PlaybackControllerNotifiable {
 
     public void fastForward() {
         UserSettingPreferences prefs = KoinJavaComponent.<UserSettingPreferences>get(UserSettingPreferences.class);
-        skip(prefs.get(prefs.skipForwardLength));
+        skip(prefs.get(UserSettingPreferences.Companion.getSkipForwardLength()));
     }
 
     public void rewind() {
         UserSettingPreferences prefs = KoinJavaComponent.<UserSettingPreferences>get(UserSettingPreferences.class);
-        skip(-prefs.get(prefs.skipBackLength));
+        skip(-prefs.get(UserSettingPreferences.Companion.getSkipBackLength()));
     }
 
     public void seek(long pos) {
@@ -1062,7 +964,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
     public void seek(long pos, boolean skipToNext) {
         if (pos <= 0) pos = 0;
 
-        Timber.d("Trying to seek from %s to %d", mCurrentPosition, pos);
+        Timber.i("Trying to seek from %s to %d", mCurrentPosition, pos);
         Timber.d("Container: %s", mCurrentStreamInfo == null ? "unknown" : mCurrentStreamInfo.getContainer());
 
         if (!hasInitializedVideoManager()) {
@@ -1106,24 +1008,23 @@ public class PlaybackController implements PlaybackControllerNotifiable {
             mVideoManager.stopPlayback();
             mPlaybackState = PlaybackState.BUFFERING;
 
-            playbackManager.getValue().changeVideoStream(mFragment, mCurrentStreamInfo, mCurrentOptions, pos * 10000, new Response<StreamInfo>() {
+            playbackManager.getValue().changeVideoStream(mFragment, mCurrentStreamInfo, mCurrentOptions, pos * 10000, new Response<StreamInfo>(mFragment.getLifecycle()) {
                 @Override
                 public void onResponse(StreamInfo response) {
+                    if (!isActive()) return;
                     mCurrentStreamInfo = response;
+
+                    updateBurningSubs(response);
+
                     if (mVideoManager != null) {
                         mVideoManager.setMediaStreamInfo(api.getValue(), response);
                         mVideoManager.start();
-                        mPlaybackState = PlaybackState.PLAYING;
-                        if (mFragment != null) {
-                            mFragment.setFadingEnabled(true);
-                            mFragment.setPlayPauseActionState(1);
-                        }
-                        startReportLoop();
                     }
                 }
 
                 @Override
                 public void onError(Exception exception) {
+                    if (!isActive()) return;
                     if (mFragment != null)
                         Utils.showToast(mFragment.getContext(), R.string.msg_video_playback_error);
                     Timber.e(exception, "Error trying to seek transcoded stream");
@@ -1145,10 +1046,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
             } else {
                 mVideoManager.play();
                 mPlaybackState = PlaybackState.PLAYING;
-                if (mFragment != null) {
-                    mFragment.setFadingEnabled(true);
-                    mFragment.setPlayPauseActionState(1);
-                }
+                if (mFragment != null) mFragment.setFadingEnabled(true);
                 startReportLoop();
             }
         }
@@ -1168,8 +1066,8 @@ public class PlaybackController implements PlaybackControllerNotifiable {
             refreshCurrentPosition();
             currentSkipPos = Utils.getSafeSeekPosition((currentSkipPos == 0 ? mCurrentPosition : currentSkipPos) + msec, getDuration());
 
-            Timber.d("Skip amount requested was %s. Calculated position is %s", msec, currentSkipPos);
-            Timber.d("Duration reported as: %s current pos: %s", getDuration(), mCurrentPosition);
+            Timber.i("Skip amount requested was %s. Calculated position is %s", msec, currentSkipPos);
+            Timber.i("Duration reported as: %s current pos: %s", getDuration(), mCurrentPosition);
 
             mSeekPosition = currentSkipPos;
             mHandler.postDelayed(skipRunnable, 800);
@@ -1283,6 +1181,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
     }
 
     private void itemComplete() {
+        interactionTracker.onEpisodeWatched();
         stop();
         resetPlayerErrors();
 
@@ -1293,15 +1192,23 @@ public class PlaybackController implements PlaybackControllerNotifiable {
             return;
         }
 
-        Timber.d("Moving to next queue item. Index: %s", (mCurrentIndex + 1));
-        if (userPreferences.getValue().get(UserPreferences.Companion.getNextUpBehavior()) != NextUpBehavior.DISABLED
-                && curItem.getType() != BaseItemKind.TRAILER) {
+        Timber.i("Moving to next queue item. Index: %s", (mCurrentIndex + 1));
+        boolean stillWatchingEnabled = userPreferences.getValue().get(UserPreferences.Companion.getStillWatchingBehavior()) != StillWatchingBehavior.DISABLED;
+        boolean nextUpEnabled = userPreferences.getValue().get(UserPreferences.Companion.getNextUpBehavior()) != NextUpBehavior.DISABLED;
+        if ((stillWatchingEnabled || nextUpEnabled) && curItem.getType() != BaseItemKind.TRAILER) {
             mCurrentIndex++;
             videoQueueManager.getValue().setCurrentMediaPosition(mCurrentIndex);
             spinnerOff = false;
 
-            // Show "Next Up" fragment
-            if (mFragment != null) mFragment.showNextUp(nextItem.getId());
+            if (mFragment != null) {
+                if (stillWatchingEnabled && interactionTracker.getShowStillWatching()) {
+                    // Show "Still Watching" fragment
+                    mFragment.showStillWatching(nextItem.getId());
+                } else if (nextUpEnabled) {
+                    // Show "Next Up" fragment
+                    mFragment.showNextUp(nextItem.getId());
+                }
+            }
             endPlayback();
         } else {
             next();
@@ -1315,11 +1222,6 @@ public class PlaybackController implements PlaybackControllerNotifiable {
 
     @Override
     public void onPrepared() {
-        if (mCurrentStreamInfo == null) {
-            Timber.e("onPrepared: mCurrentStreamInfo is null, cannot continue playback");
-            // Optionally, show an error to the user here
-            return;
-        }
         if (mPlaybackState == PlaybackState.BUFFERING) {
             if (mFragment != null) {
                 mFragment.setFadingEnabled(true);
@@ -1327,6 +1229,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
             }
 
             mPlaybackState = PlaybackState.PLAYING;
+            interactionTracker.notifyStart(getCurrentlyPlayingItem());
             mCurrentTranscodeStartTime = mCurrentStreamInfo.getPlayMethod() == PlayMethod.TRANSCODE ? Instant.now().toEpochMilli() : 0;
             startReportLoop();
         }
@@ -1336,17 +1239,13 @@ public class PlaybackController implements PlaybackControllerNotifiable {
         if (mPlaybackState == PlaybackState.PAUSED) {
             mPlaybackState = PlaybackState.PLAYING;
         } else {
-            // Only update subtitles if we're not already in the process of changing them
-            if (!burningSubs && mCurrentOptions != null) {
+            if (!burningSubs) {
                 // Make sure the requested subtitles are enabled when external/embedded
                 Integer currentSubtitleIndex = mCurrentOptions.getSubtitleStreamIndex();
                 if (currentSubtitleIndex == null) currentSubtitleIndex = -1;
-
-                // Only update if we have a valid video manager and the index is not already set
-                if (mVideoManager != null && mVideoManager.mExoPlayer != null) {
-                    Timber.d("Ensuring subtitle track %d is active", currentSubtitleIndex);
-                    PlaybackControllerHelperKt.setSubtitleIndex(this, currentSubtitleIndex, true);
-                }
+                PlaybackControllerHelperKt.setSubtitleIndex(this, currentSubtitleIndex, true);
+            } else {
+                PlaybackControllerHelperKt.disableDefaultSubtitles(this);
             }
 
             // select an audio track
@@ -1382,7 +1281,7 @@ public class PlaybackController implements PlaybackControllerNotifiable {
 
     @Override
     public void onCompletion() {
-        Timber.d("On Completion fired");
+        Timber.i("On Completion fired");
         itemComplete();
     }
 
@@ -1409,6 +1308,8 @@ public class PlaybackController implements PlaybackControllerNotifiable {
 
         if (hasInitializedVideoManager()) {
             duration = mVideoManager.getDuration();
+        } else if (getCurrentMediaSource() != null && getCurrentMediaSource().getRunTimeTicks() != null) {
+            duration = getCurrentMediaSource().getRunTimeTicks() / 10000;
         } else if (getCurrentlyPlayingItem() != null && getCurrentlyPlayingItem().getRunTimeTicks() != null) {
             duration = getCurrentlyPlayingItem().getRunTimeTicks() / 10000;
         }

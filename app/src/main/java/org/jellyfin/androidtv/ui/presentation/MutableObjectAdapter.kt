@@ -91,5 +91,5 @@ open class MutableObjectAdapter<T : Any> : ObjectAdapter, Iterable<T> {
 		return true
 	}
 
-	open fun indexOf(item: T) = data.indexOf(item)
+	fun indexOf(item: T) = data.indexOf(item)
 }

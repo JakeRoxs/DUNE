@@ -1,6 +1,7 @@
 package org.jellyfin.androidtv.integration.dream.composable
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,16 +17,13 @@ fun DreamView(
 	content: DreamContent,
 	showClock: Boolean,
 ) = Box(
-	modifier = Modifier.fillMaxSize()
+	modifier = Modifier
+		.fillMaxSize()
 ) {
 	AnimatedContent(
 		targetState = content,
 		transitionSpec = {
-			fadeIn(
-				animationSpec = tween(durationMillis = 1000)
-			) togetherWith fadeOut(
-				animationSpec = tween(durationMillis = 1000)
-			)
+			fadeIn(tween(durationMillis = 1_000)) togetherWith fadeOut(snap(delayMillis = 1_000))
 		},
 		label = "DreamContentTransition"
 	) { content ->

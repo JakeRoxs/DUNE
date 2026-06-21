@@ -20,21 +20,18 @@ import org.jellyfin.androidtv.util.sdk.toServer
 import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.exception.ApiClientException
+import org.jellyfin.sdk.api.client.exception.InvalidContentException
 import org.jellyfin.sdk.api.client.extensions.brandingApi
 import org.jellyfin.sdk.api.client.extensions.systemApi
 import org.jellyfin.sdk.discovery.RecommendedServerInfo
 import org.jellyfin.sdk.discovery.RecommendedServerInfoScore
 import org.jellyfin.sdk.model.ServerVersion
+import org.jellyfin.sdk.model.api.BrandingOptionsDto
 import org.jellyfin.sdk.model.api.ServerDiscoveryInfo
 import org.jellyfin.sdk.model.serializer.toUUID
 import timber.log.Timber
 import java.time.Instant
 import java.util.UUID
-
-private data class BrandingInfo(
-    val loginDisclaimer: String?,
-    val splashscreenEnabled: Boolean
-)
 
 /**
  * Repository to maintain servers.
@@ -42,20 +39,23 @@ private data class BrandingInfo(
 interface ServerRepository {
 	val storedServers: StateFlow<List<Server>>
 	val discoveredServers: StateFlow<List<Server>>
+	val currentServer: StateFlow<Server?>
 
 	suspend fun loadStoredServers()
 	suspend fun loadDiscoveryServers()
 
+	fun setCurrentServer(server: Server?)
+
 	fun addServer(address: String): Flow<ServerAdditionState>
-	suspend fun getServer(id: UUID): Server?
-	suspend fun updateServer(server: Server): Boolean
+	suspend fun getServer(id: UUID, eagerUpdate: Boolean = false): Server?
+	suspend fun updateServer(server: Server, force: Boolean = false): Boolean
 	suspend fun deleteServer(server: UUID): Boolean
 
 	companion object {
 		val minimumServerVersion = Jellyfin.minimumVersion.copy(build = null)
 		val recommendedServerVersion = Jellyfin.apiVersion.copy(build = null)
 
-		val upcomingMinimumServerVersion = ServerVersion(10, 10, 0)
+		val upcomingMinimumServerVersion = ServerVersion(10, 11, 0)
 	}
 }
 
@@ -69,6 +69,9 @@ class ServerRepositoryImpl(
 
 	private val _discoveredServers = MutableStateFlow(emptyList<Server>())
 	override val discoveredServers = _discoveredServers.asStateFlow()
+
+	private val _currentServer = MutableStateFlow<Server?>(null)
+	override val currentServer = _currentServer.asStateFlow()
 
 	// Loading data
 	override suspend fun loadStoredServers() {
@@ -90,6 +93,10 @@ class ServerRepositoryImpl(
 			}
 	}
 
+	override fun setCurrentServer(server: Server?) {
+		_currentServer.value = server
+	}
+
 	// Mutating data
 	override fun addServer(address: String): Flow<ServerAdditionState> = flow {
 		Timber.i("Adding server %s", address)
@@ -108,6 +115,7 @@ class ServerRepositoryImpl(
 					goodRecommendations += recommendedServer
 					false
 				}
+
 				else -> {
 					badRecommendations += recommendedServer
 					false
@@ -115,7 +123,7 @@ class ServerRepositoryImpl(
 			}
 		}
 
-		Timber.d(buildString {
+		Timber.i(buildString {
 			append("Recommendations: ")
 			if (greatRecommendation == null) append(0)
 			else append(1)
@@ -133,7 +141,7 @@ class ServerRepositoryImpl(
 
 			// Get branding info
 			val api = jellyfin.createApi(chosenRecommendation.address)
-			val branding = api.getBrandingOptions()
+			val branding = api.getBrandingOptionsOrDefault()
 
 			val id = systemInfo.id!!.toUUID()
 
@@ -167,11 +175,15 @@ class ServerRepositoryImpl(
 		}
 	}.flowOn(Dispatchers.IO)
 
-	override suspend fun getServer(id: UUID): Server? {
+	override suspend fun getServer(id: UUID, eagerUpdate: Boolean): Server? {
 		val server = authenticationStore.getServer(id) ?: return null
 
 		val updatedServer = try {
-			updateServerInternal(id, server)
+			val forceUpdate = eagerUpdate && server.version
+				?.let(ServerVersion::fromString)
+				?.let { version -> version < ServerRepository.minimumServerVersion } == true
+
+			updateServerInternal(id, server, forceUpdate)
 		} catch (err: ApiClientException) {
 			Timber.e(err, "Unable to update server")
 			null
@@ -180,12 +192,12 @@ class ServerRepositoryImpl(
 		return (updatedServer ?: server).asServer(id)
 	}
 
-	override suspend fun updateServer(server: Server): Boolean {
+	override suspend fun updateServer(server: Server, force: Boolean): Boolean {
 		// Only update existing servers
 		val serverInfo = authenticationStore.getServer(server.id) ?: return false
 
 		return try {
-			updateServerInternal(server.id, serverInfo) != null
+			updateServerInternal(server.id, serverInfo, force) != null
 		} catch (err: ApiClientException) {
 			Timber.e(err, "Unable to update server")
 
@@ -193,17 +205,21 @@ class ServerRepositoryImpl(
 		}
 	}
 
-	private suspend fun updateServerInternal(id: UUID, server: AuthenticationStoreServer): AuthenticationStoreServer? {
+	private suspend fun updateServerInternal(
+		id: UUID,
+		server: AuthenticationStoreServer,
+		forceUpdate: Boolean
+	): AuthenticationStoreServer? {
 		val now = Instant.now().toEpochMilli()
 
 		// Only update every 10 minutes
-		if (now - server.lastRefreshed < 600000 && server.version != null) return null
+		if (now - server.lastRefreshed < 600000 && server.version != null && !forceUpdate) return null
 
 		val newServer = withContext(Dispatchers.IO) {
 			val api = jellyfin.createApi(server.address)
 
 			// Get login disclaimer
-			val branding = api.getBrandingOptions()
+			val branding = api.getBrandingOptionsOrDefault()
 			val systemInfo by api.systemApi.getPublicSystemInfo()
 
 			server.copy(
@@ -242,19 +258,14 @@ class ServerRepositoryImpl(
 	 * Try to retrieve the branding options. If the response JSON is invalid it will return a default value.
 	 * This makes sure we can still work with older Jellyfin versions.
 	 */
-	private suspend fun ApiClient.getBrandingOptions(): BrandingInfo {
-		return try {
-			val response = brandingApi.getBrandingOptions()
-			BrandingInfo(
-				loginDisclaimer = response.content?.loginDisclaimer,
-				splashscreenEnabled = response.content?.splashscreenEnabled ?: false
-			)
-		} catch (exception: Exception) {
-			Timber.w(exception, "Error getting branding options, using default values")
-			BrandingInfo(
-				loginDisclaimer = null,
-				splashscreenEnabled = false
-			)
-		}
+	private suspend fun ApiClient.getBrandingOptionsOrDefault() = try {
+		brandingApi.getBrandingOptions().content
+	} catch (exception: InvalidContentException) {
+		Timber.w(exception, "Invalid branding options response, using default value")
+		BrandingOptionsDto(
+			loginDisclaimer = null,
+			customCss = null,
+			splashscreenEnabled = false,
+		)
 	}
 }

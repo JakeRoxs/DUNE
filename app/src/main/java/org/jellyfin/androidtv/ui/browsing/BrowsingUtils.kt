@@ -229,23 +229,13 @@ object BrowsingUtils {
 
 	@JvmStatic
 	fun createFavoriteItemsRequest(parentId: UUID, itemType: BaseItemKind) = GetItemsRequest(
+		fields = ItemRepository.itemFields,
+		includeItemTypes = setOf(itemType),
+		recursive = true,
 		parentId = parentId,
-		includeItemTypes = setOf(itemType),
+		imageTypeLimit = 1,
 		filters = setOf(ItemFilter.IS_FAVORITE),
 		sortBy = setOf(ItemSortBy.SORT_NAME),
-		recursive = true,
-		limit = 100,
-		fields = ItemRepository.itemFields,
-	)
-
-	@JvmStatic
-	fun createFavoriteItemsRequest(itemType: BaseItemKind) = GetItemsRequest(
-		includeItemTypes = setOf(itemType),
-		filters = setOf(ItemFilter.IS_FAVORITE),
-		sortBy = setOf(ItemSortBy.SORT_NAME),
-		recursive = true,
-		limit = 100,
-		fields = ItemRepository.itemFields,
 	)
 
 	@JvmStatic
@@ -256,22 +246,6 @@ object BrowsingUtils {
 		imageTypeLimit = 1,
 		parentId = parentId,
 		sortBy = setOf(ItemSortBy.SORT_NAME),
-	)
-
-	@JvmStatic
-	fun createPremieresRequest(parentId: UUID) = GetItemsRequest(
-		fields = ItemRepository.itemFields,
-		includeItemTypes = setOf(BaseItemKind.EPISODE),
-		parentId = parentId,
-		indexNumber = 1,
-		recursive = true,
-		isMissing = false,
-		imageTypeLimit = 1,
-		filters = setOf(ItemFilter.IS_UNPLAYED),
-		sortBy = setOf(ItemSortBy.DATE_CREATED),
-		sortOrder = setOf(SortOrder.DESCENDING),
-		enableTotalRecordCount = false,
-		limit = 300,
 	)
 
 	@JvmStatic

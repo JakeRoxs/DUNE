@@ -1,11 +1,12 @@
 plugins {
+	alias(libs.plugins.android.application) apply false
+	alias(libs.plugins.android.library) apply false
 	alias(libs.plugins.detekt)
 	java
 }
 
 buildscript {
 	dependencies {
-		classpath(libs.android.gradle)
 		classpath(libs.kotlin.gradle)
 	}
 }
@@ -33,16 +34,25 @@ subprojects {
 	// Configure default Kotlin compiler options
 	tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile> {
 		compilerOptions {
-			jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+			jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
 		}
 	}
 
 	// Configure default Android options
-	plugins.withType<com.android.build.gradle.BasePlugin> {
-		configure<com.android.build.gradle.BaseExtension> {
+	plugins.withId("com.android.application") {
+		configure<com.android.build.api.dsl.ApplicationExtension> {
 			compileOptions {
-				sourceCompatibility = JavaVersion.VERSION_1_8
-				targetCompatibility = JavaVersion.VERSION_1_8
+				sourceCompatibility = JavaVersion.VERSION_21
+				targetCompatibility = JavaVersion.VERSION_21
+			}
+		}
+	}
+
+	plugins.withId("com.android.library") {
+		configure<com.android.build.api.dsl.LibraryExtension> {
+			compileOptions {
+				sourceCompatibility = JavaVersion.VERSION_21
+				targetCompatibility = JavaVersion.VERSION_21
 			}
 		}
 	}

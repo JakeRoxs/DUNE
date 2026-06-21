@@ -4,8 +4,6 @@
     <string name="btn_cancel">Avbryt</string>
     <string name="byletter_letters">ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ</string>
     <string name="pref_playback">Avspilling</string>
-
-
     <string name="pref_max_bitrate_title">Maks bithastighet på strømming</string>
     <string name="settings_title">Innstillinger</string>
     <string name="chapters">Kapitler</string>
@@ -17,7 +15,6 @@
     <string name="lbl_by_letter">Etter bokstav</string>
     <string name="lbl_suggested">Forslag</string>
     <string name="lbl_genres">Sjangere</string>
-    <string name="lbl_suggested_tv_shows">Foreslåtte serier</string>
     <string name="lbl_search">Søk</string>
     <string name="msg_not_implemented">" ikke implementert"</string>
     <string name="lbl_latest">Nylig lagt til</string>
@@ -27,13 +24,11 @@
     <string name="lbl_favorite_channels">Favorittkanaler</string>
     <string name="lbl_other_channels">Andre kanaler</string>
     <string name="lbl_collections">Samlinger</string>
-    <string name="lbl_my_collections">Samlinger</string>
     <string name="lbl_movies">Filmer</string>
     <string name="lbl_tv_series">TV-serier</string>
-    <string name="lbl_Watched_History_Movies">Såg filmer</string>
     <string name="lbl_other">Annet</string>
     <string name="lbl_play_all">Spill alle</string>
-    <string name="lbl_shuffle_all">Spill av alt i tilfeldig rekkefølge</string>
+    <string name="lbl_shuffle_all">Tilfeldig avspilling</string>
     <string name="lbl_play">Spill av</string>
     <string name="lbl_cancel">Avbryt</string>
     <string name="lbl_cancel_recording">Avbryt opptak</string>
@@ -61,7 +56,6 @@
     <string name="lbl_people">Personer</string>
     <string name="lbl_videos">Videoer</string>
     <string name="lbl_recordings">Opptak</string>
-    <string name="lbl_music_playlists">Musikkspilleliste</string>
     <string name="lbl_none">Ingen</string>
     <string name="msg_video_playback_error">"Feil under videoavspilling - "</string>
     <string name="lbl_bracket_unknown">Ukjent</string>
@@ -84,7 +78,6 @@
     <string name="lbl_empty">Tom</string>
     <string name="lbl_tv_queuing">Spill av neste episode automatisk</string>
     <string name="lbl_search_hint">Søk tekst (velg for tastatur)</string>
-    <string name="lbl_playing">Spiller</string>
     <string name="lbl_play_first_unwatched">Spill av første som ikke er sett</string>
     <string name="lbl_mark_unplayed">Merk som usett</string>
     <string name="lbl_mark_played">Merk som sett</string>
@@ -116,17 +109,14 @@
     <string name="lbl_enable_debug">Feilsøkingsvalg</string>
     <string name="desc_debug">Bidra med ekstra informasjon for feilsøking</string>
     <string name="lbl_showing">Viser</string>
-    <string name="genre_rows">Sjangerrader (aktiver 5 eller færre for bedre ytelse)</string>
     <string name="lbl_all_items">Alle elementer</string>
     <string name="lbl_sorted_by">sortert etter</string>
     <string name="lbl_from">fra</string>
     <string name="lbl_name">Navn</string>
     <string name="lbl_date_added">Dato lagt til</string>
     <string name="lbl_premier_date">Premieredato</string>
-    <string name="lbl_production_year">Produksjonsår</string>
     <string name="lbl_critic_rating">Kritikervurdering</string>
     <string name="lbl_rating">Aldersgrense</string>
-    <string name="lbl_random">Tilfeldig</string>
     <string name="lbl_starting_with">som starter med dem hvis navn starter med</string>
     <string name="lbl_display_preferences">Visningsinnstillinger</string>
     <string name="lbl__continuing">PÅGÅENDE</string>
@@ -134,7 +124,6 @@
     <string name="lbl_filters">Direkte-TV filter</string>
     <string name="msg_subtitles_loading">Laster undertekster…</string>
     <string name="msg_unable_load_subs">Kunne ikke laste undertekster</string>
-    <string name="preference_enable_pgs">Direkte avspilling av PGS-undertekster</string>
     <string name="msg_burn_sub_warning">Innbrenning av teksting kan ta noen sekunder. Vennligst vent…</string>
     <string name="lbl_no_recordings">Ingen opptak tilgjengelige</string>
     <string name="lbl_live_tv_guide">TV-guide</string>
@@ -143,7 +132,6 @@
     <string name="msg_error_live_stream">Kunne ikke strømme direkte-TV. Prøver igjen…</string>
     <string name="lbl_direct_stream_live">Strøm direkte-TV</string>
     <string name="lbl_programs">Programmer</string>
-    <string name="lbl_playlists_and_albums">Spillelister og album</string>
     <string name="lbl_albums">Album</string>
     <string name="lbl_artists">Artister</string>
     <string name="lbl_song">Sang</string>
@@ -215,10 +203,7 @@
     <string name="lbl_now_playing_track">%1$s av %2$s</string>
     <string name="lbl_watched">Sett</string>
     <string name="lbl_favorite">Favoritt</string>
-    <string name="suggested_movies">Foreslåtte filmer</string>
-    <string name="suggested_series">Foreslåtte serier</string>
     <string name="lbl_status">%1$s / %2$s</string>
-    <string name="home_prefs_customization">"Tilpasning "</string>
     <string name="pref_authentication_cat">Autentisering</string>
     <string name="loading">Laster inn…</string>
     <string name="lbl_image_size">Bildestørrelse</string>
@@ -233,18 +218,14 @@
     <string name="lbl_new_only">Kun nye</string>
     <string name="lbl_news">Nyheter</string>
     <string name="lbl_my_media">Min media</string>
-    <string name="pref_theme_yellow_town">"Yellow Town "</string>
     <string name="pref_about_title">Om</string>
     <string name="pref_next_up_timeout_title">Varighet for Neste-timer</string>
     <string name="watch_now">Se nå</string>
     <string name="pref_next_up_timeout_summary">Hvor lang tid det skal gå før neste element spilles av</string>
-    <string name="pref_theme_emerald">Green forest</string>
+    <string name="pref_theme_emerald">Klassisk Smaragd</string>
     <string name="pref_app_theme">App-tema</string>
-    <string name="desc_my_media_extra_small">"Vis Mine mediemapper som knapper "</string>
-    <string name="pref_theme_purple_haze">Lavender Haze</string>
-    <string name="pref_theme_dark">Dark Matter (omstart kreves)</string>
+    <string name="pref_theme_dark">Mørk (Standard)</string>
     <string name="lbl_Reset">Nullstill</string>
-    <string name="pref_subtitle_weight_description">"Velg skrifttykkelse for undertekster "</string>
     <string name="pref_button_remapping_description">Trykk en knapp på fjernkontrollen til TVen for å tildele den</string>
     <string name="pref_subtitle_track_button">Undertekstknapp</string>
     <string name="pref_audio_track_button">Lydsporknapp</string>
@@ -263,8 +244,8 @@
     <string name="too_many_errors">For mange feil. Gir opp</string>
     <string name="player_error">Det oppstod en spillerfeil. Prøver på nytt…</string>
     <string name="seek_error">Kan ikke søke</string>
-    <string name="msg_live_tv_prev">Last forrige %1$d timer?\"</string>
-    <string name="msg_live_tv_next">Last inn neste %1$d timer?\"</string>
+    <string name="msg_live_tv_prev">Last forrige %1$d timer?</string>
+    <string name="msg_live_tv_next">Last inn neste %1$d timer?</string>
     <string name="lbl_load_guide_data">Last guide-data</string>
     <string name="episode_missing_message_2">Denne episoden mangler fra biblioteket ditt. Avspillingen stopper.</string>
     <string name="episode_missing_message">Denne episoden mangler fra biblioteket ditt. Vil du hoppe over det og fortsette til neste\?</string>
@@ -286,15 +267,10 @@
     <string name="pref_clock_display_browsing">Når du blar</string>
     <string name="lbl_always">Alltid</string>
     <string name="pref_clock_display">Vis klokke</string>
-    <string name="pref_default_rating">Standard vurderingstype</string>
-    <string name="lbl_tomatoes">Tomater</string>
-    <string name="lbl_stars">Stjerner</string>
     <string name="lbl_playback_control_ends">Slutter ved %1$s</string>
     <string name="lbl_sign_in">Vennligst logg inn</string>
-    <string name="pref_clock_settings_description">"Tilpass klokke og visning av profilbilde "</string>
     <string name="lbl_subtitle_track">Velg undertekst</string>
     <string name="lbl_audio_track">Velg lydspor</string>
-    <string name="msg_external_player_error">Feil ved oppstart av ekstern spiller</string>
     <string name="lbl_pause">Pause</string>
     <string name="watch_count_overflow">99+</string>
     <string name="lbl_use_series_thumbnails_description">Bruk serieminiatyrbilder når du viser episoder</string>
@@ -327,7 +303,7 @@
     <string name="lbl_remove_users">Dette vil også fjerne alle tilknyttede kontoer</string>
     <string name="lbl_manage_servers">Administrere servere</string>
     <string name="no_network_permissions">Jellyfin krever nettverkstillatelser for å fungere</string>
-    <string name="pref_theme_muted_purple">Light Breeze</string>
+    <string name="pref_theme_muted_purple">Nedtonet lilla</string>
     <string name="lbl_switch_user">Bytt bruker</string>
     <string name="user_picker_last_user_summary">Bruk den siste aktive brukeren</string>
     <string name="user_picker_last_user_title">Sist brukte</string>
@@ -378,7 +354,6 @@
     <string name="lbl_latest_in">Nylig lagt til i %1$s</string>
     <string name="pref_screensaver">Skjermsparer</string>
     <string name="pref_libraries">Biblioteker</string>
-    <string name="customization">Tilpasning</string>
     <string name="home_section_latest_media">Nylig lagt til media</string>
     <string name="pref_subtitles_background_summary">Vis en svart bakgrunn bak undertekstene</string>
     <string name="color_black">Svart</string>
@@ -447,7 +422,6 @@
     <string name="pref_behavior">Oppførsel</string>
     <string name="home_section_resume_audio">Fortsett å lytte</string>
     <string name="home_section_active_recordings">Aktive opptak</string>
-    <string name="pref_subtitles_bold">"Fet undertekst "</string>
     <string name="server_issue_unable_to_connect">Kunne ikke koble til</string>
     <string name="pref_customization">Tilpasning</string>
     <string name="pref_accounts">Brukere</string>
@@ -488,8 +462,6 @@
     <string name="pref_screensaver_inapp_timeout">Start skjermsparer etter</string>
     <string name="searchable_hint">Søk i Jellyfin</string>
     <string name="searchable_settings_description">Medier</string>
-    <string name="backdrop_settings_description">"Tilpass bakgrunnens utseende og oppførsel "</string>
-    <string name="pref_show_backdrop_description">Endre bakgrunnsbilde til valgte elementer</string>
     <string name="license_license">Lisens</string>
     <string name="item_delete_confirm_title">Slett element</string>
     <string name="home_prefs">Hjem</string>
@@ -562,12 +534,12 @@
     <string name="pref_screensaver_ageratingrequired_enabled">Kun vis elementer med en aldersgrense</string>
     <string name="pref_screensaver_ageratingrequired_disabled">Viser alle elementer</string>
     <string name="all_channels">Alle kanaler</string>
-    <string name="lbl_subtitle_background_color">Bakgrunnsfarge for undertekst</string>
+    <string name="lbl_subtitle_background_color">Bakgrunnsfarge for tekst</string>
     <string name="app_notification_update_soon">Oppdater tjeneren fra %1$s til minst %2$s for å fortsette å bruke appen etter neste oppdatering.</string>
     <string name="prefer_exoplayer_ffmpeg">Foretrekk FFmpeg for lydavspilling</string>
     <string name="prefer_exoplayer_ffmpeg_content">Bruk FFmpeg for å dekode lyd, selv om plattformkodeker er tilgjengelige.</string>
-    <string name="lbl_subtitle_text_stroke_color">Strekfarge for undertekst</string>
-    <string name="lbl_subtitle_text_color">Farge for undertekst</string>
+    <string name="lbl_subtitle_text_stroke_color">Strekfarge for tekst</string>
+    <string name="lbl_subtitle_text_color">Farge for tekst</string>
     <string name="current_queue">Aktuell kø</string>
     <string name="past_week">Forrige uke</string>
     <string name="pref_external_player">Bruk ekstern avspiller</string>
@@ -599,130 +571,51 @@
     <string name="rewind">Spol tilbake</string>
     <string name="fast_forward">Spol fremmover</string>
     <string name="indicator_subtitles_hearing_impaired">SDH</string>
-    <string name="lbl_Watched_History_Series">Såg serier</string>
-    <string name="lbl_play_external">"Spill av i ekstern spiller "</string>
-    <string name="pref_subtitle_weight">Fet undertekst</string>
-    <string name="lbl_backdrop_blur">"Bakgrunnsuskarphet "</string>
-    <string name="lbl_backdrop_fading">Bakgrunnsfalming</string>
-    <string name="lbl_backdrop_dimming">"Bakgrunnsdimming "</string>
-    <string name="backdrop_settings">"Bakgrunnsinnstillinger "</string>
-    <string name="image_quality_summary">Velg kvaliteten på bildene som vises i appen.</string>
-    <string name="image_quality_low">lav</string>
-    <string name="image_quality_normal">Normal</string>
-    <string name="image_quality_high">Høy</string>
-    <string name="show_war_row">Krig</string>
-    <string name="show_music_videos_row">Musikkvideoer</string>
-    <string name="music_videos">Musikkvideoer</string>
-    <string name="show_live_tv_button">Direktesendings-TV-knapp</string>
-    <string name="show_live_tv_button_summary">Vis knappen for direktesendt TV</string>
-    <string name="show_random_button">Tilfeldig film-knapp</string>
-    <string name="show_random_button_summary">"Vis knappen for tilfeldig film "</string>
-    <string name="pref_clock_settings">"Klokkeinnstillinger "</string>
-    <string name="pref_theme_basic">Basic (Dark Low-End)</string>
-    <string name="pref_theme_flexy">"Flexy "</string>
-    <string name="image_quality">Bildekvalitet</string>
-    <string name="update_checking">Ser etter oppdateringer …</string>
-    <string name="update_available_title">Oppdatering tilgjengelig</string>
-    <string name="update_available_message">Ny versjon %s er tilgjengelig</string>
-    <string name="install_update">Installer oppdatering</string>
-    <string name="install_error">Feil ved installasjon av oppdatering: %s</string>
-    <string name="update_downloading_title">Laster ned oppdatering</string>
-    <string name="update_downloading_message">Laster ned versjon %s…</string>
-    <string name="update_download_failed">Nedlastingen mislyktes: %s</string>
-    <string name="update_no_updates">Ingen oppdateringer tilgjengelig!</string>
-    <string name="update_download_complete">Nedlastingen er fullført. Installerer…</string>
-    <string name="update_error_title">Oppdateringsfeil</string>
-    <string name="update_install">Installer oppdatering</string>
-    <string name="enhanced_tweaks">Flere innstillinger</string>
-    <string name="enhanced_tweaks_description">Bakgrunnsinnstillinger, sjangerrader, apptemaer og mer ...</string>
-
-    <!-- Language preference strings -->
-    <string name="pref_language">App-språk</string>
-    <string name="pref_language_header">Språkinnstillinger</string>
-    <string name="pref_language_summary">Endre språket som brukes i appen</string>
-    <string name="home_content_description">Innhold på startskjermen</string>
-    <string name="lbl_music_videos">Musikkvideoer</string>
-    <string name="pref_audio_default_language">Standard lydspråk</string>
-    <string name="pref_default_language_none">(Misligholde)</string>
-    <string name="show_fantasy_row">Fantasi</string>
-    <string name="exit_app_title">Avkjøring DUNE</string>
-    <string name="exit_app_message">Er du sikker på at du vil avslutte?</string>
-    <string name="yes">Ja</string>
-    <string name="no">nej</string>
-    <string name="show_comedy_row">Komedie</string>
-    <string name="show_romance_row">Romantikk</string>
-    <string name="show_anime_row">Anime</string>
-    <string name="show_animation_row">Animasjon</string>
-    <string name="show_action_row">Action</string>
-    <string name="show_sci_fi_row">Science fiction</string>
-    <string name="show_documentary_row">Dokumentar</string>
-    <string name="show_drama_row">Drama</string>
-    <string name="show_reality_tv_row">Reality</string>
-    <string name="show_family_row">Familie</string>
-    <string name="show_horror_row">Grøss</string>
-    <string name="show_history_row">Historie</string>
-    <string name="show_music_row">Musikk</string>
-    <string name="show_mystery_row">Mysterium</string>
-    <string name="show_reality_row">Virkelighet</string>
-    <string name="show_thriller_row">Thriller</string>
-    <string name="reason_for_transcoding">Årsak til transkoding:</string>
-    <string name="transcoding_details">Detaljer om transkoding:</string>
-    <string name="app_updater_channel_description">Varsler for appoppdateringer</string>
-    <string name="stats_title">Avspillingsinformasjon</string>
-    <string name="video_title">Video</string>
-    <string name="audio_title">Lyd</string>
-    <string name="subtitles">Undertekster</string>
-    <string name="audio">Lyd</string>
-    <string name="voice_search_not_available">Talesøk er ikke tilgjengelig</string>
-    <string name="error_occurred">Det oppsto en feil. Prøv på nytt.</string>
-    <string name="no_results_found">Ingen resultater funnet</string>
-    <string name="lbl_library">Oppdater</string>
-    <string name="app_updater_channel_name">Appoppdateringer</string>
-    <string name="playback_info_title">Avspilling</string>
-    <!-- Genre names -->
-    <string-array name="genres">
-        <item>@string/genre_action</item>
-        <item>@string/genre_adventure</item>
-        <item>@string/genre_animation</item>
-        <item>@string/genre_comedy</item>
-        <item>@string/genre_crime</item>
-        <item>@string/genre_documentary</item>
-        <item>@string/genre_drama</item>
-        <item>@string/genre_family</item>
-        <item>@string/genre_fantasy</item>
-        <item>@string/genre_history</item>
-        <item>@string/genre_horror</item>
-        <item>@string/genre_music</item>
-        <item>@string/genre_mystery</item>
-        <item>@string/genre_romance</item>
-        <item>@string/genre_science_fiction</item>
-        <item>@string/genre_thriller</item>
-        <item>@string/genre_war</item>
-        <item>@string/genre_western</item>
-        <item>@string/genre_tv_movie</item>
-    </string-array>
-
-    <!-- Individual genre strings -->
-    <string name="genre_action">Action</string>
-    <string name="genre_adventure">Eventyr</string>
-    <string name="genre_animation">Animasjon</string>
-    <string name="genre_comedy">Komedie</string>
-    <string name="genre_crime">Krim</string>
-    <string name="genre_documentary">Dokumentar</string>
-    <string name="genre_drama">Drama</string>
-    <string name="genre_family">Familie</string>
-    <string name="genre_fantasy">Fantasy</string>
-    <string name="genre_history">Historie</string>
-    <string name="genre_horror">Skrekk</string>
-    <string name="genre_music">Musikk</string>
-    <string name="genre_mystery">Mysterie</string>
-    <string name="genre_romance">Romantikk</string>
-    <string name="genre_science_fiction">Science Fiction</string>
-    <string name="genre_thriller">Thriller</string>
-    <string name="genre_war">Krig</string>
-    <string name="genre_western">Western</string>
-    <string name="genre_tv_movie">TV-film</string>
-
-    <!-- Genre filter -->
-    <string name="lbl_all_genres">Alle sjangere</string>
+    <string name="lbl_from_beginning">Spill av fra begynnelsen</string>
+    <string name="preference_enable_pgs">Direkteavspilling av PGS-undertekster</string>
+    <string name="lbl_exit">Avslutt</string>
+    <string name="pref_still_watching_behavior_title">Vis inaktiv tidsavbrudd popup</string>
+    <string name="lbl_still_watching_default">3 episoder eller 90 minutter</string>
+    <string name="lbl_still_watching_short">2 episoder eller 60 minutter</string>
+    <string name="lbl_still_watching_long">5 episoder eller 150 minutter</string>
+    <string name="lbl_still_watching_very_long">8 episoder eller 240 minutter</string>
+    <string name="pref_subtitles_position">Forskyvning fra bunnen</string>
+    <string name="pref_subtitles_bold">Fet skrift</string>
+    <string name="speech_error_no_permission">Ingen tilgang til å bruke mikrofonen. Vennligst gi tilgang i systeminnstillingene.</string>
+    <string name="speech_error_unavailable">Talegjennkjenning er utilgjengelig for denne enheten.</string>
+    <string name="speech_error_unknown">En uventet feil oppstod under talegjennkjenning.</string>
+    <string name="still_watching_label">Ser du fortsatt?</string>
+    <string name="settings">Innstillinger</string>
+    <string name="settings_description">Konfigurer appen etter eget valg</string>
+    <string name="copied_to_clipboard">Kopiert til utklippstavlen</string>
+    <string name="pref_playback_next_up">Neste</string>
+    <string name="pref_playback_media_segments">Mediasegmenter</string>
+    <string name="pref_customization_subtitles">Undertekster</string>
+    <string name="pref_playback_prerolls">Forhåndsspillinger</string>
+    <string name="pref_playback_inactivity_prompt">Inaktivitetsmelding</string>
+    <string name="pref_prerolls_enabled">Skru på kinomodus</string>
+    <string name="pref_prerolls_enabled_description">Spill av egendefinerte introer før filmer</string>
+    <string name="pref_media_queueing">Legg alle episoder i kø</string>
+    <string name="pref_media_queueing_description">Legg til neste episoder i køen når du ser på TV-serier</string>
+    <string name="pref_subtitles_weight">Skrifttykkelse</string>
+    <string name="font_weight_100">Tynn</string>
+    <string name="font_weight_200">Ekstra tynn</string>
+    <string name="font_weight_300">Lett</string>
+    <string name="font_weight_400">Normal</string>
+    <string name="font_weight_500">Medium</string>
+    <string name="font_weight_600">Semi-tykk</string>
+    <string name="font_weight_700">Tykk</string>
+    <string name="font_weight_800">Ekstra tykk</string>
+    <string name="font_weight_900">Sort</string>
+    <string name="subtitle_preview_text">Undertekster ser slik ut</string>
+    <string name="color_presets">Forhåndsinnstillinger</string>
+    <string name="color_custom">Tilpass farge</string>
+    <string name="color_alpha">Gjennomsiktighet</string>
+    <string name="playback_video_player">Videospiller</string>
+    <string name="video_player_internal">Innebygd videospiller</string>
+    <string name="video_player_external">Ekstern app</string>
+    <string name="playback_video_player_external_empty">Du har ingen videospillere installert på enheten din som kan åpne videoer fra Jellyfin.</string>
+    <string name="filters">Filtere</string>
+    <string name="backdrop_behavior_with_blur">Bakgrunn med uskarphet</string>
+    <string name="backdrop_behavior_without_blur">Bakgrunn uten uskarphet</string>
 </resources>

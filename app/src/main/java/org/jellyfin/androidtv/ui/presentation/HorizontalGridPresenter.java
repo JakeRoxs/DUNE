@@ -20,12 +20,6 @@ import org.jellyfin.androidtv.databinding.HorizontalGridBinding;
 
 import timber.log.Timber;
 
-class CustomFocusHighlightHelper extends FocusHighlightHelper {
-    public static void setupBrowseItemFocusHighlight(ItemBridgeAdapter adapter, int zoomFactor, boolean useDimmer) {
-        FocusHighlightHelper.setupBrowseItemFocusHighlight(adapter, zoomFactor, false);
-    }
-}
-
 /**
  * A presenter that renders objects in a horizontal grid.
  */
@@ -193,8 +187,8 @@ public class HorizontalGridPresenter extends Presenter {
             ((ViewGroup) vh.view).setClipChildren(false);
         }
         vh.getGridView().setFocusDrawingOrderEnabled(!isUsingZOrder());
-        CustomFocusHighlightHelper.setupBrowseItemFocusHighlight(vh.mItemBridgeAdapter,
-                mZoomFactor, false); // Pass false for useDimmer to disable the dimming effect
+        FocusHighlightHelper.setupBrowseItemFocusHighlight(vh.mItemBridgeAdapter,
+                mZoomFactor, false);
 
         final ViewHolder gridViewHolder = vh;
         vh.getGridView().setOnChildViewHolderSelectedListener(new OnChildViewHolderSelectedListener() {

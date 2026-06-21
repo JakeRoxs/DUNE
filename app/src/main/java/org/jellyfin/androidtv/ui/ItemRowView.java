@@ -80,10 +80,11 @@ public class ItemRowView extends FrameLayout {
     @Override
     protected void onFocusChanged(boolean gainFocus, int direction, Rect previouslyFocusedRect) {
         super.onFocusChanged(gainFocus, direction, previouslyFocusedRect);
-        mWholeRow.setSelected(gainFocus);
-        mWholeRow.setActivated(gainFocus);
-        if (gainFocus && rowSelectedListener != null) {
-            rowSelectedListener.onRowSelected(this);
+        if (gainFocus) {
+            mWholeRow.setBackgroundResource(R.drawable.jellyfin_button);
+            if (rowSelectedListener != null) rowSelectedListener.onRowSelected(this);
+        } else {
+            mWholeRow.setBackground(normalBackground);
         }
     }
 

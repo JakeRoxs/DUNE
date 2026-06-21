@@ -15,10 +15,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.jellyfin.androidtv.auth.model.Server
 import org.jellyfin.androidtv.preference.UserPreferences
+import org.jellyfin.androidtv.preference.constant.BackdropBehavior
 import org.jellyfin.androidtv.util.apiclient.getUrl
 import org.jellyfin.androidtv.util.apiclient.itemBackdropImages
 import org.jellyfin.androidtv.util.apiclient.parentBackdropImages
-import org.jellyfin.androidtv.util.ImageHelper
 import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.imageApi
@@ -34,7 +34,6 @@ class BackgroundService(
 	private val api: ApiClient,
 	private val userPreferences: UserPreferences,
 	private val imageLoader: ImageLoader,
-	private val imageHelper: ImageHelper,
 ) {
 	companion object {
 		val SLIDESHOW_DURATION = 30.seconds
@@ -51,74 +50,53 @@ class BackgroundService(
 	private var _backgrounds = emptyList<ImageBitmap>()
 	private var _currentIndex = 0
 	private var _currentBackground = MutableStateFlow<ImageBitmap?>(null)
+	private var _blurBackground = MutableStateFlow(false)
 	private var _enabled = MutableStateFlow(true)
-	private var _preventLoginBackgroundOverride = MutableStateFlow(false)
-	private var _blockAllBackgrounds = MutableStateFlow(false)
 	val currentBackground get() = _currentBackground.asStateFlow()
+	val blurBackground get() = _blurBackground.asStateFlow()
 	val enabled get() = _enabled.asStateFlow()
-	val blockAllBackgrounds get() = _blockAllBackgrounds.asStateFlow()
-	private var _fadingIntensity = MutableStateFlow(0.7f)
-	val backdropFadingIntensity get() = _fadingIntensity.asStateFlow()
-	private var _dynamicColors = MutableStateFlow(true)
-	val backdropDynamicColors get() = _dynamicColors.asStateFlow()
+
+	/**
+	 * Use all available backdrops from [baseItem] as background.
+	 */
+	fun setBackground(baseItem: BaseItemDto?) {
+		val backdropBehavior = userPreferences[UserPreferences.backdropBehavior]
+
+		// Check if item is set and backgrounds are enabled
+		if (baseItem == null || backdropBehavior == BackdropBehavior.DISABLED)
+			return clearBackgrounds()
+
+		// Enable blur for backdrops
+		_blurBackground.value = backdropBehavior == BackdropBehavior.BACKDROP_WITH_BLUR
+
+		// Get all backdrop urls
+		val backdropUrls = (baseItem.itemBackdropImages + baseItem.parentBackdropImages)
+			.map { it.getUrl(api) }
+			.toSet()
+
+		loadBackgrounds(backdropUrls)
+	}
 
 	/**
 	 * Use splashscreen from [server] as background.
 	 */
 	fun setBackground(server: Server) {
-		if (_blockAllBackgrounds.value) return
-
 		// Check if item is set and backgrounds are enabled
-		if (!userPreferences[UserPreferences.backdropEnabled] || _preventLoginBackgroundOverride.value)
+		if (userPreferences[UserPreferences.backdropBehavior] == BackdropBehavior.DISABLED)
 			return clearBackgrounds()
 
 		// Check if splashscreen is enabled in (cached) branding options
 		if (!server.splashscreenEnabled)
 			return clearBackgrounds()
 
-		// Reset dimming and fading for login screen
-		_fadingIntensity.value = 0f
+		// Disable blur on splashscreen
+		_blurBackground.value = false
 
 		// Manually grab the backdrop URL
 		val api = jellyfin.createApi(baseUrl = server.address)
 		val splashscreenUrl = api.imageApi.getSplashscreenUrl()
 
 		loadBackgrounds(setOf(splashscreenUrl))
-	}
-
-
-	/**
-	 * Use all available backdrops from [baseItem] as background.
-	 * For Media Folders, use primary image as backdrop if no backdrops are available.
-	 */
-	fun setBackground(baseItem: BaseItemDto?) {
-		if (_blockAllBackgrounds.value) return
-
-		// Check if item is set and backgrounds are enabled
-		if (baseItem == null || !userPreferences[UserPreferences.backdropEnabled])
-			return clearBackgrounds()
-
-		_fadingIntensity.value = userPreferences[UserPreferences.backdropFadingIntensity]
-
-		// Get all backdrop URLs
-		val backdropUrls = (baseItem.itemBackdropImages + baseItem.parentBackdropImages)
-			.map { it.getUrl(api) }
-			.toMutableSet()
-
-		// If no backdrops are available, use the primary image as fallback
-		if (backdropUrls.isEmpty()) {
-			val primaryImageUrl = imageHelper.getPrimaryImageUrl(
-				item = baseItem,
-				width = 1920,
-				height = 1080
-			)
-
-			if (primaryImageUrl != null) {
-				backdropUrls.add(primaryImageUrl)
-			}
-		}
-
-		loadBackgrounds(backdropUrls)
 	}
 
 	private fun loadBackgrounds(backdropUrls: Set<String>) {
@@ -131,13 +109,9 @@ class BackgroundService(
 		loadBackgroundsJob?.cancel()
 		loadBackgroundsJob = scope.launch(Dispatchers.IO) {
 			_backgrounds = backdropUrls.mapNotNull { url ->
-				try {
-					imageLoader.execute(
-						request = ImageRequest.Builder(context).data(url).build()
-					).image?.toBitmap()?.asImageBitmap()
-				} catch (e: Exception) {
-					null
-				}
+				imageLoader.execute(
+					request = ImageRequest.Builder(context).data(url).build()
+				).image?.toBitmap()?.asImageBitmap()
 			}
 
 			// Go to first background
@@ -147,7 +121,6 @@ class BackgroundService(
 	}
 
 	fun clearBackgrounds() {
-		_preventLoginBackgroundOverride.value = false
 		loadBackgroundsJob?.cancel()
 
 		// Re-enable backgrounds if disabled
@@ -164,33 +137,6 @@ class BackgroundService(
 	 */
 	fun disable() {
 		_enabled.value = false
-	}
-
-	/**
-	 * Prevent background override for login screens
-	 */
-	fun preventLoginBackgroundOverride() {
-		_preventLoginBackgroundOverride.value = true
-	}
-
-	/**
-	 * Allow background override for login screens
-	 */
-	fun allowLoginBackgroundOverride() {
-		_preventLoginBackgroundOverride.value = false
-	}
-
-	fun blockAllBackgrounds() {
-		_blockAllBackgrounds.value = true
-		clearBackgrounds() // Clear any existing backgrounds
-	}
-
-	fun blockAllBackgroundsSilent() {
-		_blockAllBackgrounds.value = true
-	}
-
-	fun unblockAllBackgrounds() {
-		_blockAllBackgrounds.value = false
 	}
 
 	internal fun update() {

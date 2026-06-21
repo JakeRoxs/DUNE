@@ -88,6 +88,7 @@ public class ItemRowAdapter extends MutableObjectAdapter<Object> {
     private List<org.jellyfin.sdk.model.api.BaseItemDto> mItems;
     private MutableObjectAdapter<Row> mParent;
     private ListRow mRow;
+    private Row siblingRow;
     private int chunkSize = 0;
 
     private int itemsLoaded = 0;
@@ -96,21 +97,15 @@ public class ItemRowAdapter extends MutableObjectAdapter<Object> {
 
     private final Object currentlyRetrievingSemaphore = new Object();
     private boolean currentlyRetrieving = false;
-    private boolean mIsScrolling = false;
-    private int mFirstVisiblePosition = 0;
-    private int mLastVisiblePosition = Integer.MAX_VALUE;
-    private final int VISIBLE_BUFFER_SIZE = 20;
-    private long mLastVirtualUpdate = 0;
-    private final long VIRTUAL_UPDATE_THROTTLE_MS = 200;
+
     private boolean preferParentThumb = false;
-    private String mGenreFilter;
     private boolean staticHeight = false;
 
     private final Lazy<org.jellyfin.sdk.api.client.ApiClient> api = inject(org.jellyfin.sdk.api.client.ApiClient.class);
     private final Lazy<UserViewsRepository> userViewsRepository = inject(UserViewsRepository.class);
     private Context context;
 
-    public boolean isCurrentlyRetrieving() {
+    private boolean isCurrentlyRetrieving() {
         synchronized (currentlyRetrievingSemaphore) {
             return currentlyRetrieving;
         }
@@ -136,6 +131,10 @@ public class ItemRowAdapter extends MutableObjectAdapter<Object> {
 
     public void setRow(ListRow row) {
         mRow = row;
+    }
+
+    public void setSiblingRow(Row row) {
+        siblingRow = row;
     }
 
     public void setReRetrieveTriggers(ChangeTriggerType[] reRetrieveTriggers) {
@@ -365,21 +364,6 @@ public class ItemRowAdapter extends MutableObjectAdapter<Object> {
         return totalItems;
     }
 
-    public String getGenreFilter() {
-        return mGenreFilter;
-    }
-
-    public void setGenreFilter(String genre) {
-        if (mGenreFilter != null && !mGenreFilter.equals(genre) || (mGenreFilter == null && genre != null)) {
-            mGenreFilter = genre;
-            if (mQuery != null) {
-                java.util.List<String> genreList = genre != null ? java.util.Collections.singletonList(genre) : null;
-                // new copy of the query with updated genres using the wacky dorky helper method
-                mQuery = ItemRowAdapterHelperKt.setItemsGenres(mQuery, genreList);
-            }
-        }
-    }
-
     public void setSortBy(BrowseGridFragment.SortOption option) {
         if (!option.value.equals(mSortBy) || !option.order.equals(sortOrder)) {
             mSortBy = option.value;
@@ -472,6 +456,10 @@ public class ItemRowAdapter extends MutableObjectAdapter<Object> {
             return;
         }
 
+        if (siblingRow != null) {
+            mParent.remove(siblingRow);
+        }
+
         if (mParent.size() == 1) {
             // we will be removing the last row - show something and prevent the framework from crashing
             // because there is nowhere for focus to land
@@ -483,60 +471,24 @@ public class ItemRowAdapter extends MutableObjectAdapter<Object> {
         mParent.remove(mRow);
     }
 
-    @Override
-    public int indexOf(Object item) {
-        int index = super.indexOf(item);
-        if (index < 0) {
-            Timber.w("Item not found in adapter, returning -1 for indexOf: %s", item);
-        }
-        return index;
-    }
-
-    @Override
-    public Object get(int position) {
-        if (position < 0 || position >= size()) {
-            Timber.e("Invalid position %d requested from adapter (size: %d)", position, size());
-            return null;
-        }
-        return super.get(position);
-    }
-
-    @Override
-    public int size() {
-        int size = super.size();
-        if (size < 0) {
-            Timber.e("Adapter size is negative: %d", size);
-            return 0;
-        }
-        return size;
-    }
-
     public void loadMoreItemsIfNeeded(int pos) {
-        if (pos < 0) {
-            Timber.w("Invalid position %d in loadMoreItemsIfNeeded, skipping", pos);
+        if (fullyLoaded) {
+            //context.getLogger().Debug("Row is fully loaded");
             return;
         }
-
-        if (fullyLoaded || isCurrentlyRetrieving()) {
-            Timber.d("Not loading more because fully loaded or currently retrieving");
+        if (isCurrentlyRetrieving()) {
+            Timber.i("Not loading more because currently retrieving");
             return;
         }
-
-        if (mLastVisiblePosition != Integer.MAX_VALUE) {
-            if (pos >= mFirstVisiblePosition - VISIBLE_BUFFER_SIZE && pos <= mLastVisiblePosition + VISIBLE_BUFFER_SIZE) {
-                Timber.d("Virtual loading: pos %d is within range %d-%d", pos, mFirstVisiblePosition, mLastVisiblePosition);
-                retrieveNext();
-            }
-            return;
-        }
+        // This needs tobe based on the actual estimated cards on screen via type of presenter and WindowAlignmentOffsetPercent
         if (chunkSize > 0) {
             // we can use chunkSize as indicator on when to load
             if (pos >= (itemsLoaded - (chunkSize / 1.7))) {
-                Timber.d("Loading more items trigger pos <%s> itemsLoaded <%s> from total <%s> with chunkSize <%s>", pos, itemsLoaded, totalItems, chunkSize);
+                Timber.i("Loading more items trigger pos <%s> itemsLoaded <%s> from total <%s> with chunkSize <%s>", pos, itemsLoaded, totalItems, chunkSize);
                 retrieveNext();
             }
         } else if (pos >= itemsLoaded - 20) {
-            Timber.d("Loading more items trigger pos <%s> itemsLoaded <%s> from total <%s>", pos, itemsLoaded, totalItems);
+            Timber.i("Loading more items trigger pos <%s> itemsLoaded <%s> from total <%s>", pos, itemsLoaded, totalItems);
             retrieveNext();
         }
     }
@@ -616,76 +568,6 @@ public class ItemRowAdapter extends MutableObjectAdapter<Object> {
 
         return retrieve;
     }
-    /**
-     * Sets scroll state for performance optimization
-     * @param isScrolling true if scrolling, false if idle
-     */
-    public void setScrollState(boolean isScrolling) {
-        if (mIsScrolling == isScrolling) return;
-
-        mIsScrolling = isScrolling;
-
-        if (!isScrolling) {
-            updateVisibleItemLoading();
-        }
-    }
-
-    public boolean isScrolling() {
-        return mIsScrolling;
-    }
-
-    /**
-     * @param firstVisible First visible item position
-     * @param lastVisible Last visible item position
-     */
-    public void setVisibleRange(int firstVisible, int lastVisible) {
-        if (firstVisible < 0 || lastVisible < 0) {
-            Timber.w("Invalid visible range: firstVisible=%d, lastVisible=%d, skipping update", firstVisible, lastVisible);
-            return;
-        }
-
-        if (firstVisible > lastVisible) {
-            Timber.w("Invalid visible range: firstVisible (%d) > lastVisible (%d), swapping", firstVisible, lastVisible);
-            int temp = firstVisible;
-            firstVisible = lastVisible;
-            lastVisible = temp;
-        }
-
-        long currentTime = System.currentTimeMillis();
-        if (currentTime - mLastVirtualUpdate < VIRTUAL_UPDATE_THROTTLE_MS) {
-            return;
-        }
-        mLastVirtualUpdate = currentTime;
-
-        if (Math.abs(firstVisible - mFirstVisiblePosition) > 10 || Math.abs(lastVisible - mLastVisiblePosition) > 10) {
-            int oldFirst = mFirstVisiblePosition;
-            int oldLast = mLastVisiblePosition;
-
-            mFirstVisiblePosition = Math.max(0, firstVisible - VISIBLE_BUFFER_SIZE);
-            mLastVisiblePosition = Math.min(totalItems > 0 ? totalItems - 1 : Integer.MAX_VALUE, lastVisible + VISIBLE_BUFFER_SIZE);
-
-            Timber.d("Virtual range updated: %d-%d -> %d-%d (total: %d)",
-                oldFirst, oldLast, mFirstVisiblePosition, mLastVisiblePosition, totalItems);
-
-            updateVisibleItemLoading();
-        }
-    }
-
-    private void updateVisibleItemLoading() {
-        if (mFirstVisiblePosition >= itemsLoaded && !fullyLoaded && !isCurrentlyRetrieving()) {
-            int targetSize = Math.min(mLastVisiblePosition + (VISIBLE_BUFFER_SIZE / 2), totalItems);
-            if (targetSize > itemsLoaded + (chunkSize / 2)) { // Load half-chunk at a time
-                Timber.d("Virtual loading: need items %d-%d, currently have %d",
-                    mFirstVisiblePosition, mLastVisiblePosition, itemsLoaded);
-                retrieveNext();
-            }
-        }
-        unbindInvisibleItems();
-    }
-    private void unbindInvisibleItems() {
-        // This would require custom implementation in the presenter
-        // For now, we'll rely on RecyclerView's built-in recycling
-    }
 
     public void Retrieve() {
         notifyRetrieveStarted();
@@ -735,9 +617,6 @@ public class ItemRowAdapter extends MutableObjectAdapter<Object> {
                 break;
             case StaticItems:
                 loadStaticItems();
-                break;
-            case StaticAudioQueueItems:
-                loadStaticAudioItems();
                 break;
             case Specials:
                 ItemRowAdapterHelperKt.retrieveSpecialFeatures(this, api.getValue(), mSpecialsQuery);
@@ -806,20 +685,6 @@ public class ItemRowAdapter extends MutableObjectAdapter<Object> {
                 add(new BaseItemDtoBaseRowItem(item));
             }
             itemsLoaded = mItems.size();
-        } else {
-            removeRow();
-        }
-
-        notifyRetrieveFinished();
-    }
-
-    private void loadStaticAudioItems() {
-        if (mItems != null) {
-            for (org.jellyfin.sdk.model.api.BaseItemDto item : mItems) {
-                add(new AudioQueueBaseRowItem(item));
-            }
-            itemsLoaded = mItems.size();
-
         } else {
             removeRow();
         }
